@@ -18,7 +18,7 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Done as: block bursts into 3x3 pieces and the tail fades out over `ANIMATE_FRAMES`. A real tail "rewind" is still open if wanted; not checked in a browser yet
 - [x] Server: support more than one game room instead of `games[0]` only
   - Rooms are never closed once opened (max 8, `MAX_GAMES` in `server.js`); empty extra rooms keep ticking. Could close empty rooms or show the room number in the client later
-- [ ] Add unit tests for tail filling (`fillTail` / `floodFill`) and Color
+- [x] Add unit tests for tail filling (`fillTail` / `floodFill`) and Color
 - [ ] Add an ESLint config and fix warnings (implicit globals like `steps`, `distWeights` in bot-mode.js)
 
 ## Log
@@ -31,3 +31,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 18:08: Resync keeps kills, zoom, view and land bars, and no longer replays the drop-in animation for the whole map
 - 2026-10-24 18:09: Death animation: dead players explode into pieces and their tail fades (`client-modes/explosion.js`, unit-tested); needs a visual check
 - 2026-10-24 18:10: Game rooms: players join the requested room, else the first with space, else a new room (up to 8); all rooms tick (`Game.join`, unit-tested)
+- 2026-10-24 18:11: Tests for closing a loop (tail + enclosed area filled, checked over the whole grid) and for Color (HSL to rgba, derive*, interpolate, range check)

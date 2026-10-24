@@ -94,6 +94,53 @@ function unitTests() {
       assert.strictEqual(Game.join([fakeGame(0)], fakeClient, "d", -1, 1), null, "no room and no new games");
     });
   }).then(function() {
+    return check("closing a loop fills the tail and the area it encloses", function() {
+      var grid = new core.Grid(core.GRID_SIZE);
+      var player = makePlayer(grid, 0, 10, 10, 1); //Owns rows 9-11, cols 9-11.
+      core.initPlayer(grid, player);
+      var players = [player];
+
+      //Walk n cells in a direction, one frame at a time.
+      function walk(heading, n) {
+        player.heading = heading;
+        for (var i = 0; i < n * CELL_WIDTH / core.SPEED; i++)
+          core.updateFrame(grid, players);
+      }
+      walk(1, 4); //Right to col 14.
+      walk(0, 3); //Up to row 7.
+      assert.ok(!grid.get(8, 12), "nothing is filled before the loop closes");
+      walk(3, 4); //Left to col 10.
+      walk(2, 2); //Down to row 9, back home.
+
+      assert.ok(!player.dead);
+      var expected = {};
+      [[10, 12], [10, 13], [10, 14], [9, 14], [8, 14], [7, 14], [7, 13], [7, 12], [7, 11], [7, 10], [8, 10], //Tail.
+        [8, 11], [8, 12], [8, 13], [9, 12], [9, 13]].forEach(function(rc) { //Enclosed.
+        expected[rc[0] + "," + rc[1]] = true;
+      });
+      for (var r = 9; r <= 11; r++)
+        for (var c = 9; c <= 11; c++)
+          expected[r + "," + c] = true; //Start area.
+      for (var r = 0; r < grid.size; r++)
+        for (var c = 0; c < grid.size; c++)
+          assert.strictEqual(grid.get(r, c) === player, !!expected[r + "," + c], "cell " + r + "," + c);
+      assert.strictEqual(player.tail.moves.length, 0, "tail is cleared");
+    });
+  }).then(function() {
+    return check("Color converts HSL to rgba and clamps derived colors", function() {
+      var red = new core.Color(0, 1, .5, 1);
+      assert.strictEqual(red.rgbString(), "rgba(255, 0, 0, 1)");
+      assert.strictEqual(new core.Color(1 / 3, 1, .5).rgbString(), "rgba(0, 255, 0, 1)");
+      assert.strictEqual(new core.Color(0, 0, .5, .5).rgbString(), "rgba(128, 128, 128, 0.5)");
+      assert.strictEqual(red.deriveLumination(1).lum, 1);
+      assert.strictEqual(red.deriveSaturation(-2).sat, 0);
+      assert.strictEqual(red.deriveAlpha(.25).rgbString(), "rgba(255, 0, 0, 0.25)");
+      assert.ok(Math.abs(red.deriveHue(.25).hue - .75) < 1e-9, "hue wraps around");
+      assert.strictEqual(red.interpolateToString(new core.Color(2 / 3, 1, .5), .5).rgbString(), "rgb(127, 0, 127)");
+      assert.deepStrictEqual(core.Color.fromData({hue: .5, sat: .5, lum: .5, alpha: 1}), new core.Color(.5, .5, .5, 1));
+      assert.throws(function() { new core.Color(0, 1.5, .5); }, RangeError);
+    });
+  }).then(function() {
     return check("end-of-game stats keep the best values and the time alive", function() {
       var stats = new GameStats();
       stats.update(.5, 3, 0, 4); //Ignored before the game started.
