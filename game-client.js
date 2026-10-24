@@ -49,6 +49,7 @@ function run() {
       //Some browsers keep the focus on a hidden name field, which would
       //swallow the steering keys.
       $("#begin :focus").blur();
+      $("#error").text(""); //Don't show an old error on the next login screen.
       $("#begin").addClass("hidden");
       $("#begin").animate({
           opacity: 0
