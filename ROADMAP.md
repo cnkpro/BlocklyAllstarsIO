@@ -21,7 +21,8 @@ when it is done and add a one-line note (date, commit) under "Log".
 - [x] Add unit tests for tail filling (`fillTail` / `floodFill`) and Color
 - [x] Add an ESLint config and fix warnings (implicit globals like `steps`, `distWeights` in bot-mode.js)
   - `npm run lint`: 0 errors, 9 warnings left (unused debug helpers in the bots, `gridWidth` in `user-mode.js` used by commented-out code); decide whether to delete them
-- [ ] `npm audit` reports 2 critical issues in `sha.js` / `crypto-browserify` pulled in by browserify (build-time only); check whether upgrading or replacing browserify is worth it
+- [x] `npm audit` reports 2 critical issues in `sha.js` / `crypto-browserify` pulled in by browserify (build-time only); check whether upgrading or replacing browserify is worth it
+  - Fixed with `npm audit fix` (crypto-browserify 3.3.0 -> 3.12.1, lockfile only). 4 low-severity reports remain for `elliptic` (no fixed release; build-time only)
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -35,3 +36,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 18:10: Game rooms: players join the requested room, else the first with space, else a new room (up to 8); all rooms tick (`Game.join`, unit-tested)
 - 2026-10-24 18:11: Tests for closing a loop (tail + enclosed area filled, checked over the whole grid) and for Color (HSL to rgba, derive*, interpolate, range check)
 - 2026-10-24 18:13: ESLint 9 config (`eslint.config.js`, `npm run lint`); fixed implicit globals in both bots (`steps` was never used: its init loop never ran on the sparse array) and removed unused variables
+- 2026-10-24 18:14: `npm audit fix`: critical sha.js/crypto-browserify issues gone (lockfile only, bundle unchanged)
