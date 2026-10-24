@@ -4,6 +4,7 @@ var path = require("path");
 var childProcess = require("child_process");
 var io = require("socket.io-client");
 var core = require("../game-core");
+var GameStats = require("../client-modes/stats");
 
 var CELL_WIDTH = core.CELL_WIDTH;
 var failures = 0;
@@ -42,6 +43,32 @@ function unitTests() {
 
     assert.deepStrictEqual(players.map(function(p) { return p.num; }), [1]);
     assert.deepStrictEqual(dead.map(function(p) { return p.num; }).sort(), [0, 2]);
+  }).then(function() {
+    return check("end-of-game stats keep the best values and the time alive", function() {
+      var stats = new GameStats();
+      stats.update(.5, 3, 0, 4); //Ignored before the game started.
+      assert.strictEqual(stats.maxPortion, 0);
+
+      stats.start(1000);
+      stats.start(5000); //Frame re-requests must not restart the clock.
+      stats.update(.1, 1, 2, 4);
+      stats.update(.25, 2, 0, 4);
+      stats.update(.05, 0, 3, 5); //Kill count reset by a frame re-request.
+      stats.end(66000);
+      stats.update(0, 0, 4, 5); //Ignored after the game ended.
+
+      assert.deepStrictEqual(stats.rows(), [
+        ["Land", "5.00%"],
+        ["Best land", "25.00%"],
+        ["Kills", "2"],
+        ["Best rank", "#1"],
+        ["Time alive", "1:05"]
+      ]);
+
+      stats.reset();
+      assert.deepStrictEqual(stats.rows()[3], ["Best rank", "--"]);
+      assert.strictEqual(GameStats.formatTime(3599999), "59:59");
+    });
   });
 }
 

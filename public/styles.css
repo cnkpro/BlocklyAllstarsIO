@@ -69,3 +69,19 @@ button:active {
   top: 0;
   left: 0;
 }
+
+#stats table {
+  margin: 1rem auto 0;
+  font-size: 24px;
+  border-spacing: 2rem .25rem;
+}
+
+#stats th {
+  text-align: right;
+  font-weight: normal;
+  color: lightgray;
+}
+
+#stats td {
+  text-align: left;
+}

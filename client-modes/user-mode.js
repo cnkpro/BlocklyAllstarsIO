@@ -3,6 +3,7 @@
 var core = require("../game-core");
 var client = require("../client");
 var Rolling = require("./rolling");
+var GameStats = require("./stats");
 
 var GRID_SIZE = core.GRID_SIZE;
 var CELL_WIDTH = core.CELL_WIDTH;
@@ -34,6 +35,7 @@ $(function () {
 var animateGrid, playerPortion, portionsRolling, 
   barProportionRolling,  animateTo, offset, user, zoom, showedDead;
 var grid = client.grid;
+var stats = new GameStats(); //Not cleared by reset(), since frame requests reset the game.
 
 function updateSize()
 {
@@ -232,6 +234,8 @@ function paintUIBar(ctx)
   });
  
   var rank = sorted.findIndex(function(val) {return val.player === user});
+  if (user && !user.dead)
+    stats.update(playerPortion[user.num] / GRID_SIZE / GRID_SIZE, client.kills, rank, sorted.length);
   ctx.fillText("Rank: " + (rank === -1 ? "--" : rank + 1) + " of " + sorted.length, 
   ctx.measureText(killsText).width + killsOffset + 20, CELL_WIDTH - 5);
   
@@ -392,13 +396,26 @@ function getBounceOffset(frame)
   }
 }
 
+function fillStats() {
+  var table = $("<table>");
+  stats.rows().forEach(function(row) {
+    table.append($("<tr>").append($("<th>").text(row[0]), $("<td>").text(row[1])));
+  });
+  
+  var panel = $("<div>").addClass("center");
+  panel.append($("<h1>").text("Game over!"));
+  panel.append($("<small>").text(user && user.name ? user.name : "Unnamed"));
+  panel.append(table);
+  $("#stats").empty().append(panel);
+}
+
 function showStats() {
-  //TODO: Show score stats.
   $("#begin").removeClass("hidden");
   $("#begin").animate({
     opacity: .9999
   }, 1000, function() {
     $("#stats").addClass("hidden").css("opacity", 0);
+    stats.reset();
   });
 }
 
@@ -410,6 +427,8 @@ module.exports = exports = {
   },
   disconnect: function() {
     //Show score stats.
+    stats.end(Date.now());
+    fillStats();
     $("#stats").removeClass("hidden");
     $("#stats").animate({
       opacity: .9999
@@ -426,6 +445,7 @@ module.exports = exports = {
   
   setUser: function(player) {
     user = player;
+    stats.start(Date.now());
     centerOnPlayer(user, offset);
   },
   reset: reset,
