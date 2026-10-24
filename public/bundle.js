@@ -898,6 +898,7 @@ function connectGame(url, name, callback) {
     else {
       console.error('Unable to connect to game: ' + msg);
       running = false;
+      socket.disconnect(); //Don't leave a socket open for every retry.
     }
     if (callback)
       callback(success, msg);

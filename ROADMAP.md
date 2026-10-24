@@ -34,6 +34,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed: `processFrame` skips new players it already knows; tested with the fake socket
 - [x] W, A, S, D and the arrow keys can't be typed into the name field: the steering key handler swallowed them everywhere (found in code review)
   - Fixed: key mapping moved to `client-modes/keys.js` (unit-tested) and ignores keys typed into text fields; not checked in a browser (preview server declined)
+- [x] A refused join ("All games are full!") left the client's socket open; bots retry every second, so a full server collected one more open socket per bot per second (found in code review)
+  - Fixed: `connectGame` closes the socket when `hello` fails (tested with the fake socket)
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -57,3 +59,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 20:07: Fixed a client hang on resync after a missed frame (off-by-one in the frame-cache replay turned into an endless request loop); unit test drives `client.js` with a fake socket
 - 2026-10-24 20:10: Fixed clients losing track of the start area of players who joined in the same frame as them; fake-socket test helper shared by both client tests
 - 2026-10-24 20:14: Name field takes W/A/S/D and arrow keys again (steering keys only outside text fields, `client-modes/keys.js`)
+- 2026-10-24 20:16: Refused joins close their socket, so retrying bots no longer pile up connections on a full server

@@ -282,6 +282,15 @@ function unitTests() {
       assert.strictEqual(fake.client.grid.get(20, 20), pl, "start area belongs to the player we know");
       fake.receive("disconnect");
     });
+  }).then(function() {
+    return check("client closes its socket when the server refuses to let it join", function() {
+      var fake = connectFakeClient(true);
+      assert.strictEqual(fake.connected, false);
+      fake = connectFakeClient(); //Can try again.
+      assert.strictEqual(fake.connected, true);
+      fake.receive("game", fakeGame(10, 1));
+      fake.receive("disconnect");
+    });
   });
 }
 
@@ -289,7 +298,7 @@ function unitTests() {
 //messages into, and connects it to a new fake game.
 var fakeClient = null;
 var nextFakeSocket = null;
-function connectFakeClient() {
+function connectFakeClient(refuse) {
   var fake = nextFakeSocket = {
     handlers: {},
     connected: true,
@@ -299,7 +308,7 @@ function connectFakeClient() {
       if (name === "requestFrame" && ++this.requests > 3)
         throw new Error("client keeps requesting frames");
       if (name === "hello")
-        ack(true);
+        ack(!refuse, refuse ? "All games are full!" : undefined);
     },
     disconnect: function() { this.connected = false; },
     receive: function(name, data) { this.handlers[name](data); }
