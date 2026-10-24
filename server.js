@@ -55,11 +55,9 @@ server.listen(port, hostname, function() {
   console.log("Blockly.IO listening on http://" + hostname + ":" + port);
 });
 
-function tick() {
+require('./ticker.js')(function tick() {
   games.forEach(function(game) {
     game.tickFrame();
   });
   Game.closeEmpty(games);
-  setTimeout(tick, 1000 / 60);
-}
-tick();
+}, 60);

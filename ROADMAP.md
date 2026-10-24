@@ -24,6 +24,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - `npm run lint`: 0 errors, 9 warnings left (unused debug helpers in the bots, `gridWidth` in `user-mode.js` used by commented-out code); decide whether to delete them
 - [x] `npm audit` reports 2 critical issues in `sha.js` / `crypto-browserify` pulled in by browserify (build-time only); check whether upgrading or replacing browserify is worth it
   - Fixed with `npm audit fix` (crypto-browserify 3.3.0 -> 3.12.1, lockfile only). 4 low-severity reports remain for `elliptic` (no fixed release; build-time only)
+- [x] Server runs at ~36 instead of 60 frames a second on Windows (`setTimeout(tick, 1000 / 60)` fires late), so the whole game is ~40% slow there (found in code review)
+  - Fixed with a catch-up ticker (`ticker.js`); when the timer wakes late, two frames can go out at once, so check that movement still looks smooth in a browser
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -40,3 +42,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 18:14: `npm audit fix`: critical sha.js/crypto-browserify issues gone (lockfile only, bundle unchanged)
 - 2026-10-24 19:05: Mobile, part 2: on-screen arrow pad shown only on touch screens while playing (CSS `pointer: coarse`; Play-button handler no longer catches the arrow buttons), compact UI bar and 3-player leaderboard below 640px (`hud-layout.js`, unit-tested), start/score screens resized for phones; not checked visually
 - 2026-10-24 19:07: Code review (backlog was empty): empty extra rooms are now closed and rooms are looked up by id instead of array index (unit-tested). Found: server ticks at ~36/s instead of 60 on Windows (`setTimeout` resolution); fixing next
+- 2026-10-24 19:08: Server tick rate fixed: fixed-step `ticker.js` catches up late timer wake-ups (measured 36.5 -> 60 ticks/s; real-time test added)

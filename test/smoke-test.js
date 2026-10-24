@@ -5,6 +5,7 @@ var childProcess = require("child_process");
 var io = require("socket.io-client");
 var core = require("../game-core");
 var Game = require("../game-server");
+var startTicker = require("../ticker");
 var GameStats = require("../client-modes/stats");
 var swipeHeading = require("../client-modes/swipe");
 var hudLayout = require("../client-modes/hud-layout");
@@ -113,6 +114,18 @@ function unitTests() {
 
       games = [fakeGame(0, 0), fakeGame(2, 0)];
       assert.strictEqual(Game.join(games, fakeClient, "BOT e", 2, 3).id, 1, "reuses the id of a closed game");
+    });
+  }).then(function() {
+    return check("server ticks 60 times a second", function() {
+      return new Promise(function(resolve) {
+        var ticks = 0;
+        var stop = startTicker(function() { ticks++; }, 60);
+        setTimeout(function() {
+          stop();
+          assert.ok(ticks >= 54 && ticks <= 66, ticks + " ticks in one second");
+          resolve();
+        }, 1000);
+      });
     });
   }).then(function() {
     return check("empty games are closed, except the first one", function() {
