@@ -44,6 +44,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed: connection errors and early disconnects end the attempt with an error message (or go back to the login screen if the join was already accepted); bots now retry instead of waiting on a dead socket. Tested with the fake socket
 - [x] A player whose whole territory was enclosed by someone else stayed alive with no land: they could never fill their tail again and just wandered until they hit a wall or got cut (found in code review)
   - Fixed in `updateFrame` (game-core, so server and clients agree): players without any land are out, like in paper.io. The enclosing player gets no kill for it; decide whether it should count as a kill
+- [x] Death animations were cut off when the client resynced: `reset` cleared them even when keeping the view (found in code review)
+  - Fixed: a resync keeps running death animations. DOM-side, no unit test; not checked in a browser (needs a resync during a death)
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -72,3 +74,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 21:07: Score screen no longer shows zeros when Play is clicked during the login screen's fade-in
 - 2026-10-24 21:12: Play works again after a failed or dropped connection (`cantJoin` in `client.js`)
 - 2026-10-24 22:10: Code review (backlog empty): players whose land is all enclosed by another player are now out instead of wandering with no land (unit-tested); server code otherwise checked (joins, verify, ticker, spawn spots) without new findings
+- 2026-10-24 22:14: Death animations keep playing through a resync

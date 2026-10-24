@@ -66,9 +66,10 @@ function reset(keepView) {
   playerPortion = [];
   user = null;
   showedDead = false;
-  dying = [];
   if (keepView)
-    return;
+    return; //Death animations play on, they don't need the old game state.
+
+  dying = [];
 
   stats.reset();
   portionsRolling = [];
