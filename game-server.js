@@ -177,6 +177,12 @@ function Game(id)
       return '(' + loc[0] + ', ' + loc[1] + ') [' + loc[2] + ']';
     }
     
+    if (!verify || typeof verify !== "object")
+    {
+      resp(false, false, "No locations supplied");
+      return;
+    }
+    
     var locs = frameLocs[fr - minFrame];
     if (locs.frame !== fr)
     {
@@ -189,6 +195,11 @@ function Game(id)
     {
       if (!locs[num])
         continue;
+      if (!Array.isArray(verify[num]))
+      {
+        resp(false, false, 'P' + num + ' has no valid location');
+        return;
+      }
       if (locs[num][0] !== verify[num][0] || locs[num][1] !== verify[num][1] || locs[num][2] !== verify[num][2])
       {
         resp(false, true, 'P' + num +  ' ' + string(locs[num]) + ' !== ' + string(verify[num]));

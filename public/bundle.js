@@ -604,6 +604,7 @@ var io = require('socket.io-client');
 
 var GRID_SIZE = core.GRID_SIZE;
 var CELL_WIDTH = core.CELL_WIDTH;
+var VERIFY_INTERVAL = 60; //Check our player locations with the server once per second.
 
 var running = false;
 var user, socket, frame;
@@ -861,26 +862,8 @@ function processFrame(data)
   
   update();
   
-  var locs = {};
-  for (var i = 0; i < players.length; i++)
-  {
-    var p = players[i];
-    locs[p.num] = [p.posX, p.posY, p.waitLag];
-  }
-  
-  /*
-  socket.emit('verify', {
-    frame: frame,
-    locs: locs
-  }, function(frame, success, adviceFix, msg) {
-    if (!success && requesting === -1) 
-    {
-      console.error(frame + ': ' + msg);
-      if (adviceFix)
-        socket.emit('requestFrame');
-    }
-  }.bind(this, frame));
-  */
+  if (frame % VERIFY_INTERVAL === 0)
+    verifyFrame();
   
   dirty = true;
   requestAnimationFrame(function() {
@@ -890,6 +873,34 @@ function processFrame(data)
     console.warn('Server has timed-out. Disconnecting.');
     socket.disconnect();
   }, 3000);
+}
+
+//Asks the server whether our player locations match, and resyncs if they don't.
+function verifyFrame()
+{
+  var locs = {};
+  for (var i = 0; i < players.length; i++)
+  {
+    var p = players[i];
+    locs[p.num] = [p.posX, p.posY, p.waitLag];
+  }
+  
+  var sock = socket;
+  sock.emit('verify', {
+    frame: frame,
+    locs: locs
+  }, function(frame, success, adviceFix, msg) {
+    if (success || sock !== socket || !sock.connected)
+      return;
+    if (adviceFix)
+    {
+      console.warn('Frame verification failed at ' + frame + ': ' + msg + '. Resyncing.');
+      if (requesting === -1)
+        sock.emit('requestFrame');
+    }
+    else
+      console.warn('Unable to verify frame ' + frame + ': ' + msg);
+  }.bind(this, frame));
 }
 
 function paintLoop()

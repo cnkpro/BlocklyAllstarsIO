@@ -130,15 +130,28 @@ function serverTests() {
     });
   }).then(function() {
     return check("malformed messages are rejected without crashing the server", function() {
-      var s = connect(url);
+      var s = connect(url), gameFrame;
       return emitAck(s, "hello", null).then(function(r) {
         assert.strictEqual(r[0], false);
         return emitAck(s, "hello", {name: 12345});
       }).then(function(r) {
         assert.strictEqual(r[0], false);
+        s.once("game", function(data) { gameFrame = data.frame; });
         return emitAck(s, "hello", {name: "tester"});
       }).then(function(r) {
         assert.strictEqual(r[0], true);
+        return wait(200);
+      }).then(function() {
+        assert.strictEqual(typeof gameFrame, "number", "no game data received");
+        return emitAck(s, "verify", {frame: gameFrame, locs: "nope"});
+      }).then(function(r) {
+        assert.strictEqual(r[0], false);
+        var nullLocs = {};
+        for (var i = 0; i < core.MAX_PLAYERS; i++)
+          nullLocs[i] = null;
+        return emitAck(s, "verify", {frame: gameFrame + 3, locs: nullLocs}); //We are on the map by then.
+      }).then(function(r) {
+        assert.strictEqual(r[0], false);
         return emitAck(s, "hello", {name: "again"});
       }).then(function(r) {
         assert.strictEqual(r[0], false, "a socket should only join once");
@@ -170,7 +183,7 @@ function serverTests() {
         bots.forEach(function(bot) {
           assert.strictEqual(bot.exitCode, null, "bot exited:\n" + bot.log);
           assert.ok(/Connected to game!/.test(bot.log), "bot never joined:\n" + bot.log);
-          assert.ok(!/Frames don't match up|Error/.test(bot.log), "bot reported errors:\n" + bot.log);
+          assert.ok(!/Frames don't match up|verification failed|Error/.test(bot.log), "bot reported errors:\n" + bot.log);
         });
       });
     });

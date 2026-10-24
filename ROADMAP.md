@@ -11,7 +11,7 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Done as a CSS tile logo (no image). Needs a look in a real browser; swap in an image later if wanted
 - [ ] Mobile support: swipe / on-screen controls and a responsive canvas (upstream issue #14)
   - Done: swipe controls (`client-modes/swipe.js`, wired in `game-client.js`). Remaining: the top UI bar and leaderboard use fixed 400px bars and overflow on phones; maybe on-screen arrow buttons; test on a real touch device
-- [ ] Re-enable client/server frame verification in `client.js` (currently commented out) and resync on mismatch
+- [x] Re-enable client/server frame verification in `client.js` (currently commented out) and resync on mismatch
 - [ ] Keep kill count and zoom when the client re-requests a frame (TODO in `client-modes/user-mode.js`)
 - [ ] Death animation: tail rewinds / player explodes (TODO in `user-mode.js`)
 - [ ] Server: support more than one game room instead of `games[0]` only
@@ -20,7 +20,8 @@ when it is done and add a one-line note (date, commit) under "Log".
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
-- 2026-10-24 18:05: End-of-game score screen: `#stats` now shows final/best land %, kills, best rank and time alive (`client-modes/stats.js`, unit-tested); not checked in a browser yet (preview server was declined during the automated run)
-- 2026-10-24 18:10: Shared constants: `ANIMATE_FRAMES` and `NEW_PLAYER_LAG` added to `game-consts.js`; `game-core.js` and `player.js` no longer redefine `CELL_WIDTH`/`SPEED`; test for spawn lag and speed
-- 2026-10-24 18:15: Login screen: placeholder title replaced with a coloured tile "BLOCKLY.IO" logo in HTML/CSS (smaller on narrow screens); not checked visually (no browser preview available in the automated run)
-- 2026-10-24 18:20: Mobile, part 1: swipe controls for touch screens (unit-tested heading logic); UI bar layout on phones still open
+- 2026-10-24 18:01: End-of-game score screen: `#stats` now shows final/best land %, kills, best rank and time alive (`client-modes/stats.js`, unit-tested); not checked in a browser yet (preview server was declined during the automated run)
+- 2026-10-24 18:03: Shared constants: `ANIMATE_FRAMES` and `NEW_PLAYER_LAG` added to `game-consts.js`; `game-core.js` and `player.js` no longer redefine `CELL_WIDTH`/`SPEED`; test for spawn lag and speed
+- 2026-10-24 18:04: Login screen: placeholder title replaced with a coloured tile "BLOCKLY.IO" logo in HTML/CSS (smaller on narrow screens); not checked visually (no browser preview available in the automated run)
+- 2026-10-24 18:05: Mobile, part 1: swipe controls for touch screens (unit-tested heading logic); UI bar layout on phones still open
+- 2026-10-24 18:07: Frame verification back on: clients check player locations with the server once per second and request a resync on mismatch; server rejects malformed `verify` payloads instead of crashing on null entries
