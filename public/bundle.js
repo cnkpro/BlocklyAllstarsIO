@@ -120,7 +120,7 @@ var CELL_WIDTH = core.CELL_WIDTH;
 var SPEED = core.SPEED;
 var BORDER_WIDTH = core.BORDER_WIDTH;
 var SHADOW_OFFSET = 5;
-var ANIMATE_FRAMES = 24;
+var ANIMATE_FRAMES = core.ANIMATE_FRAMES;
 var BOUNCE_FRAMES = [8, 4];
 var DROP_HEIGHT = 24;
 var DROP_SPEED = 2;
@@ -1202,16 +1202,18 @@ var consts = {
   CELL_WIDTH: constant(40),
   SPEED: constant(5),
   BORDER_WIDTH: constant(20),
-  MAX_PLAYERS: constant(81)
+  MAX_PLAYERS: constant(81),
+  ANIMATE_FRAMES: constant(24), //Frames for the tile and spawn animations.
+  NEW_PLAYER_LAG: constant(60) //Frames a new player waits before moving. (One second)
 };
 
 Object.defineProperties(module.exports, consts);
 
 },{}],8:[function(require,module,exports){
-var ANIMATE_FRAMES = 24;
-var CELL_WIDTH = 40;
+var consts = require("./game-consts.js");
 
-//TODO: remove constants.
+var CELL_WIDTH = consts.CELL_WIDTH;
+
 exports.initPlayer = function(grid, player)
 {
   for (var dr = -1; dr <= 1; dr++)
@@ -1347,7 +1349,7 @@ function area(player)
   else
     return Math.abs(player.posX - xDest);
 }
-},{}],9:[function(require,module,exports){
+},{"./game-consts.js":7}],9:[function(require,module,exports){
 function Grid(size, changeCallback)
 {
   var grid = new Array(size);
@@ -1431,7 +1433,8 @@ var consts = require("./game-consts.js");
 
 var GRID_SIZE = consts.GRID_SIZE;
 var CELL_WIDTH = consts.CELL_WIDTH;
-var NEW_PLAYER_LAG = 60; //wait for a second at least.
+var SPEED = consts.SPEED;
+var NEW_PLAYER_LAG = consts.NEW_PLAYER_LAG;
 
 function defineGetter(getter) {
   return {
@@ -1774,7 +1777,6 @@ function hitsTail(data, other)
     !!(data.tailGrid[other.row] && data.tailGrid[other.row][other.col]);
 }
 
-var SPEED = 5;
 var SHADOW_OFFSET = 10;
 
 function Player(grid, sdata) {

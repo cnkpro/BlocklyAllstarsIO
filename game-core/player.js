@@ -5,7 +5,8 @@ var consts = require("./game-consts.js");
 
 var GRID_SIZE = consts.GRID_SIZE;
 var CELL_WIDTH = consts.CELL_WIDTH;
-var NEW_PLAYER_LAG = 60; //wait for a second at least.
+var SPEED = consts.SPEED;
+var NEW_PLAYER_LAG = consts.NEW_PLAYER_LAG;
 
 function defineGetter(getter) {
   return {
@@ -348,7 +349,6 @@ function hitsTail(data, other)
     !!(data.tailGrid[other.row] && data.tailGrid[other.row][other.col]);
 }
 
-var SPEED = 5;
 var SHADOW_OFFSET = 10;
 
 function Player(grid, sdata) {

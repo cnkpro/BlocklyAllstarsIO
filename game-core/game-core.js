@@ -1,7 +1,7 @@
-var ANIMATE_FRAMES = 24;
-var CELL_WIDTH = 40;
+var consts = require("./game-consts.js");
 
-//TODO: remove constants.
+var CELL_WIDTH = consts.CELL_WIDTH;
+
 exports.initPlayer = function(grid, player)
 {
   for (var dr = -1; dr <= 1; dr++)

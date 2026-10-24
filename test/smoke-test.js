@@ -44,6 +44,17 @@ function unitTests() {
     assert.deepStrictEqual(players.map(function(p) { return p.num; }), [1]);
     assert.deepStrictEqual(dead.map(function(p) { return p.num; }).sort(), [0, 2]);
   }).then(function() {
+    return check("new players wait NEW_PLAYER_LAG frames, then move SPEED per frame", function() {
+      assert.strictEqual(core.ANIMATE_FRAMES, 24);
+      var grid = new core.Grid(core.GRID_SIZE);
+      var player = new core.Player(grid, {num: 0, posX: 10 * CELL_WIDTH, posY: 10 * CELL_WIDTH, currentHeading: 1});
+      for (var i = 0; i < core.NEW_PLAYER_LAG; i++)
+        player.move();
+      assert.strictEqual(player.posX, 10 * CELL_WIDTH);
+      player.move();
+      assert.strictEqual(player.posX, 10 * CELL_WIDTH + core.SPEED);
+    });
+  }).then(function() {
     return check("end-of-game stats keep the best values and the time alive", function() {
       var stats = new GameStats();
       stats.update(.5, 3, 0, 4); //Ignored before the game started.
