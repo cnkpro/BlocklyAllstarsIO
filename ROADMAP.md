@@ -48,6 +48,10 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed: a resync keeps running death animations. DOM-side, no unit test; not checked in a browser (needs a resync during a death)
 - [x] `npm test` could hang forever: the server tests waited a fixed 1s for the server to start, and on a slow (cold) start the socket's `hello` ack never came back; the spawned server then kept the test process alive (found when the 23:00 run's first `npm test` never finished)
   - Fixed: the test waits for the server's "listening" line (fails after 15s), a 120s watchdog fails the run instead of hanging, and spawned server/bot processes are killed when the test exits
+- [ ] Score screen is only fully visible for an instant: it fades in over 3s and then the login screen immediately fades in on top of it, so both overlap (found in a browser play-test). Hold the score screen (e.g. ~4s, or until a click/key) before fading in the login screen, without the overlap
+- [ ] Death animation is cut short: in a browser the 3x3 burst shows at the moment of death, but the pieces and the tail are gone within 250 ms instead of fading out over the animation (found in a browser play-test)
+- [ ] Login screen: the blue GitHub link is hard to read on black; the player name on the score screen is very small (found in a browser play-test)
+- [ ] Phone layout: the arrow pad covers the bottom-right of the play area, so you can't see what's coming when heading down/right; consider making it smaller or semi-transparent (found in a browser play-test)
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
