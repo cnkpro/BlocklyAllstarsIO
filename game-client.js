@@ -2,6 +2,7 @@
 var client = require("./client");
 var io = require('socket.io-client');
 var swipeHeading = require("./client-modes/swipe");
+var keyHeading = require("./client-modes/keys");
 
 client.allowAnimation = true;
 client.renderer = require("./client-modes/user-mode");
@@ -100,22 +101,9 @@ $(function() {
 
 //Event listeners
 $(document).keydown(function(e) {
-  var newHeading = -1;
-  switch (e.which)
-  {
-    case 37: newHeading = 3; break; //LEFT
-    case 65: newHeading = 3; break; //LEFT (A)
-
-    case 38: newHeading = 0; break; //UP
-    case 87: newHeading = 0; break; //UP (W)
-
-    case 39: newHeading = 1; break; //RIGHT
-    case 68: newHeading = 1; break; //RIGHT (D)
-
-    case 40: newHeading = 2; break; //DOWN
-    case 83: newHeading = 2; break; //DOWN (S)
-    default: return; //exit handler for other keys.
-  }
+  var newHeading = keyHeading(e.which, e.target);
+  if (newHeading === -1)
+    return; //exit handler for other keys.
   
   client.changeHeading(newHeading);
   e.preventDefault();

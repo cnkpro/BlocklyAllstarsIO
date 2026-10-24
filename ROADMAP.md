@@ -32,6 +32,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed: replay skips cached frames the new game state already includes; tested with a fake socket. Not reproducible by hand in a browser (needs a dropped frame)
 - [x] Clients give a player's start area to a throwaway copy when that player is announced as new but already in the loaded game state (joined in the same frame, or right before a resync), so the client draws a tail the server doesn't have (found in code review)
   - Fixed: `processFrame` skips new players it already knows; tested with the fake socket
+- [x] W, A, S, D and the arrow keys can't be typed into the name field: the steering key handler swallowed them everywhere (found in code review)
+  - Fixed: key mapping moved to `client-modes/keys.js` (unit-tested) and ignores keys typed into text fields; not checked in a browser (preview server declined)
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -54,3 +56,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 20:04: Code review (backlog empty): spawn spots now avoid tails and heads, so joining no longer kills a player who is out drawing a tail (`Game.findEmpty`, unit-tested)
 - 2026-10-24 20:07: Fixed a client hang on resync after a missed frame (off-by-one in the frame-cache replay turned into an endless request loop); unit test drives `client.js` with a fake socket
 - 2026-10-24 20:10: Fixed clients losing track of the start area of players who joined in the same frame as them; fake-socket test helper shared by both client tests
+- 2026-10-24 20:14: Name field takes W/A/S/D and arrow keys again (steering keys only outside text fields, `client-modes/keys.js`)

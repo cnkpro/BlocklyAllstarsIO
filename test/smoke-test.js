@@ -8,6 +8,7 @@ var Game = require("../game-server");
 var startTicker = require("../ticker");
 var GameStats = require("../client-modes/stats");
 var swipeHeading = require("../client-modes/swipe");
+var keyHeading = require("../client-modes/keys");
 var hudLayout = require("../client-modes/hud-layout");
 var explosionPieces = require("../client-modes/explosion");
 
@@ -67,6 +68,15 @@ function unitTests() {
       assert.strictEqual(swipeHeading(-10, 31), 2);
       assert.strictEqual(swipeHeading(-40, 39), 3);
       assert.strictEqual(swipeHeading(5, 0, 4), 1);
+    });
+  }).then(function() {
+    return check("arrow keys and WASD steer, but not while typing a name", function() {
+      var page = {tagName: "BODY"};
+      assert.deepStrictEqual([38, 39, 40, 37].map(function(k) { return keyHeading(k, page); }), [0, 1, 2, 3]);
+      assert.deepStrictEqual([87, 68, 83, 65].map(function(k) { return keyHeading(k, page); }), [0, 1, 2, 3]);
+      assert.strictEqual(keyHeading(13, page), -1, "other keys");
+      assert.strictEqual(keyHeading(65, {tagName: "INPUT"}), -1, "typing in the name field");
+      assert.strictEqual(keyHeading(37, {tagName: "INPUT"}), -1, "moving the cursor in the name field");
     });
   }).then(function() {
     return check("UI bars shrink to fit narrow screens", function() {
