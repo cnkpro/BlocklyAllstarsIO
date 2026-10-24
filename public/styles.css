@@ -85,3 +85,42 @@ button:active {
 #stats td {
   text-align: left;
 }
+
+#logo {
+  margin: 0 0 1rem;
+  font-size: 48px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+#logo .tile {
+  display: inline-block;
+  width: 56px;
+  height: 56px;
+  line-height: 60px;
+  margin: 0 2px 10px;
+  color: white;
+}
+
+#logo .tile-0 { background: #e0533d; box-shadow: 0 10px 0 #a33a29; }
+#logo .tile-1 { background: #edc52b; box-shadow: 0 10px 0 #b0911c; }
+#logo .tile-2 { background: #3fae5a; box-shadow: 0 10px 0 #2b7c3f; }
+#logo .tile-3 { background: #3d8be0; box-shadow: 0 10px 0 #2a63a3; }
+
+#logo .io {
+  margin-left: .5rem;
+  color: lightgray;
+}
+
+@media (max-width: 640px) {
+  #logo {
+    font-size: 24px;
+  }
+  
+  #logo .tile {
+    width: 28px;
+    height: 28px;
+    line-height: 30px;
+    margin: 0 1px 5px;
+  }
+}
