@@ -26,6 +26,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed with `npm audit fix` (crypto-browserify 3.3.0 -> 3.12.1, lockfile only). 4 low-severity reports remain for `elliptic` (no fixed release; build-time only)
 - [x] Server runs at ~36 instead of 60 frames a second on Windows (`setTimeout(tick, 1000 / 60)` fires late), so the whole game is ~40% slow there (found in code review)
   - Fixed with a catch-up ticker (`ticker.js`); when the timer wakes late, two frames can go out at once, so check that movement still looks smooth in a browser
+- [x] New players can spawn on another player's tail or next to their head (`findEmpty` only checked owned land), which kills that player on the spot (found in code review)
+  - Fixed: spawn spots also avoid every tail cell and the 5x5 area around each head
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -45,3 +47,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 19:08: Server tick rate fixed: fixed-step `ticker.js` catches up late timer wake-ups (measured 36.5 -> 60 ticks/s; real-time test added)
 - 2026-10-24 19:10: Review of `client.js`/`game-core`: kill counting and heading checks are fine (the server does not reject a reversed heading, but that only lets a modified client kill itself). Name field now limited to 32 characters like the server
 - 2026-10-24 19:10: README: "Playing" section (controls incl. touch, score screen, rooms). Sprint summary left for the 00:00 run
+- 2026-10-24 20:04: Code review (backlog empty): spawn spots now avoid tails and heads, so joining no longer kills a player who is out drawing a tail (`Game.findEmpty`, unit-tested)

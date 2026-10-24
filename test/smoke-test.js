@@ -116,6 +116,30 @@ function unitTests() {
       assert.strictEqual(Game.join(games, fakeClient, "BOT e", 2, 3).id, 1, "reuses the id of a closed game");
     });
   }).then(function() {
+    return check("new players never spawn on a tail or next to a head", function() {
+      var grid = new core.Grid(core.GRID_SIZE);
+      //Only rows 38-42, cols 28-50 are free, so every spot includes row 40.
+      for (var r = 0; r < grid.size; r++)
+        for (var c = 0; c < grid.size; c++)
+          if (r < 38 || r > 42 || c < 28 || c > 50)
+            grid.set(r, c, {num: 99});
+      //Head at col 36, tail along row 40 from col 30.
+      var player = new core.Player(grid, {num: 0, name: "P0", posX: 36 * CELL_WIDTH, posY: 40 * CELL_WIDTH,
+        currentHeading: 1, tail: {startRow: 40, startCol: 30, tail: [{orientation: 1, move: 6}]}});
+      assert.ok(player.tail.hitsTail({row: 40, col: 33}), "tail is set up");
+
+      var nearTail = 0;
+      for (var i = 0; i < 200; i++)
+      {
+        var spot = Game.findEmpty(grid, [player]);
+        assert.ok(spot.col <= 29 || spot.col >= 40, "spot at col " + spot.col);
+        var free = Game.findEmpty(grid, []);
+        if (free.col >= 30 && free.col <= 39)
+          nearTail++;
+      }
+      assert.ok(nearTail > 0, "without players the strip around the tail is free");
+    });
+  }).then(function() {
     return check("server ticks 60 times a second", function() {
       return new Promise(function(resolve) {
         var ticks = 0;

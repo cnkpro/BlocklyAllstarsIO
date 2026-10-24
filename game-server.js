@@ -59,7 +59,7 @@ function Game(id)
     if (players.length >= MAX_PLAYERS)
       return false;
     
-    var start = findEmpty(grid);
+    var start = findEmpty(grid, players);
     if (!start)
       return false;
     
@@ -351,10 +351,26 @@ function gridSerialData(grid, players)
   return buff;
 }
 
-function findEmpty(grid)
+//Finds a free 3x3 spot for a new player. Tails and heads are not part of the
+//grid, so they are checked as well: spawning on a tail kills its owner, and
+//spawning next to a head off its own land kills that player.
+function findEmpty(grid, players)
 {
   var available = [];
-  
+  var blocked = new core.Grid(grid.size);
+
+  (players || []).forEach(function(p) {
+    //Two cells around the head also covers the cell it is moving into.
+    for (var dr = -2; dr <= 2; dr++)
+      for (var dc = -2; dc <= 2; dc++)
+        if (!blocked.isOutOfBounds(p.row + dr, p.col + dc))
+          blocked.set(p.row + dr, p.col + dc, true);
+    for (var r = 0; r < grid.size; r++)
+      for (var c = 0; c < grid.size; c++)
+        if (p.tail.hitsTail({row: r, col: c}))
+          blocked.set(r, c, true);
+  });
+
   for (var r = 1; r < grid.size - 1; r++)
     for (var c = 1; c < grid.size - 1; c++)
     {
@@ -363,7 +379,7 @@ function findEmpty(grid)
       {
         for (var dc = -1; dc <= 1; dc++)
         {
-          if (grid.get(r + dr, c + dc))
+          if (grid.get(r + dr, c + dc) || blocked.get(r + dr, c + dc))
           {
             cluttered = true;
             break checkclutter;
@@ -379,5 +395,7 @@ function findEmpty(grid)
   else
     return available[Math.floor(available.length * Math.random())];
 }
+
+Game.findEmpty = findEmpty; //For tests.
 
 module.exports = Game;
