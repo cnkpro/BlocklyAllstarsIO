@@ -6,6 +6,7 @@ var Rolling = require("./rolling");
 var GameStats = require("./stats");
 var explosionPieces = require("./explosion");
 var hudLayout = require("./hud-layout");
+var holdScreen = require("./hold");
 
 var GRID_SIZE = core.GRID_SIZE;
 var CELL_WIDTH = core.CELL_WIDTH;
@@ -18,6 +19,9 @@ var DROP_HEIGHT = 24;
 var DROP_SPEED = 2;
 var MIN_BAR_WIDTH = hudLayout.MIN_BAR_WIDTH;
 var BAR_HEIGHT = SHADOW_OFFSET + CELL_WIDTH;
+var SCORE_FADE_IN = 1000; //ms
+var SCORE_HOLD = 4000; //ms, a click, key or tap skips it
+var SCORE_FADE_OUT = 500; //ms
 
 var canvas, canvasWidth, canvasHeight, gameWidth, gameHeight, ctx, offctx, offscreenCanvas;
 
@@ -445,15 +449,37 @@ function fillStats() {
   $("#stats").empty().append(panel);
 }
 
+//Fade the score screen in, hold it, fade it out, then fade in the login
+//screen, so the two never overlap.
 function showStats() {
+  fillStats();
+  $("#stats").removeClass("hidden");
+  $("#stats").animate({
+    opacity: .9999
+  }, SCORE_FADE_IN, function() {
+    //Listen only after the fade-in, so a key still held from the game
+    //doesn't skip the score screen right away.
+    var events = "mousedown.score keydown.score touchstart.score";
+    var skip = holdScreen(SCORE_HOLD, function() {
+      $(document).off(events);
+      $("#stats").animate({
+        opacity: 0
+      }, SCORE_FADE_OUT, function() {
+        $("#stats").addClass("hidden");
+        showLogin();
+      });
+    });
+    $(document).on(events, skip);
+  });
+}
+
+function showLogin() {
+  //Play can be clicked during the fade, so the stats are cleared when the
+  //next game loads (reset) instead of here.
   $("#begin").removeClass("hidden");
   $("#begin").animate({
     opacity: .9999
-  }, 1000, function() {
-    //Play can be clicked during the fade, so the stats are cleared when the
-    //next game loads (reset) instead of here.
-    $("#stats").addClass("hidden").css("opacity", 0);
-  });
+  }, 1000);
 }
 
 module.exports = exports = {
@@ -468,14 +494,7 @@ module.exports = exports = {
   disconnect: function() {
     //Show score stats.
     stats.end(Date.now());
-    fillStats();
-    $("#stats").removeClass("hidden");
-    $("#stats").animate({
-      opacity: .9999
-    }, 3000, function() {
-      showStats();
-      //Then fade back into the login screen.
-    });
+    showStats();
   },
   removePlayer: function(player) {
     if (player.dead && client.allowAnimation)

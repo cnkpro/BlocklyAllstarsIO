@@ -11,6 +11,7 @@ var swipeHeading = require("../client-modes/swipe");
 var keyHeading = require("../client-modes/keys");
 var hudLayout = require("../client-modes/hud-layout");
 var explosionPieces = require("../client-modes/explosion");
+var holdScreen = require("../client-modes/hold");
 
 var CELL_WIDTH = core.CELL_WIDTH;
 var failures = 0;
@@ -112,6 +113,28 @@ function unitTests() {
       end.forEach(function(piece) { assert.strictEqual(piece.alpha, 0); });
       assert.ok(end[0].x < 0 && end[0].y < 0, "top-left piece flies up-left");
       assert.ok(end[8].x > CELL_WIDTH && end[8].y > CELL_WIDTH, "bottom-right piece flies down-right");
+    });
+  }).then(function() {
+    return check("score screen is held until the timeout or a skip, and ends only once", function() {
+      var pending = [];
+      var timers = {
+        setTimeout: function(fn, ms) { pending.push({fn: fn, ms: ms}); return pending.length - 1; },
+        clearTimeout: function(id) { pending[id] = null; }
+      };
+      var calls = 0;
+      var skip = holdScreen(4000, function() { calls++; }, timers);
+      assert.strictEqual(pending[0].ms, 4000);
+      assert.strictEqual(calls, 0);
+      skip();
+      skip();
+      assert.strictEqual(calls, 1);
+      assert.strictEqual(pending[0], null, "timer is cleared on skip");
+
+      calls = 0;
+      skip = holdScreen(4000, function() { calls++; }, timers);
+      pending[1].fn(); //Timeout fires.
+      skip(); //Late click.
+      assert.strictEqual(calls, 1);
     });
   }).then(function() {
     return check("players go to the requested game, then any game with room, then a new game", function() {
