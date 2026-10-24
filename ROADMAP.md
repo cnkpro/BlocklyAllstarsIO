@@ -12,7 +12,8 @@ when it is done and add a one-line note (date, commit) under "Log".
 - [ ] Mobile support: swipe / on-screen controls and a responsive canvas (upstream issue #14)
   - Done: swipe controls (`client-modes/swipe.js`, wired in `game-client.js`). Remaining: the top UI bar and leaderboard use fixed 400px bars and overflow on phones; maybe on-screen arrow buttons; test on a real touch device
 - [x] Re-enable client/server frame verification in `client.js` (currently commented out) and resync on mismatch
-- [ ] Keep kill count and zoom when the client re-requests a frame (TODO in `client-modes/user-mode.js`)
+- [x] Keep kill count and zoom when the client re-requests a frame (TODO in `client-modes/user-mode.js`)
+  - No automated test for the resync path yet (the client socket is private); worth a manual check by forcing a `requestFrame`
 - [ ] Death animation: tail rewinds / player explodes (TODO in `user-mode.js`)
 - [ ] Server: support more than one game room instead of `games[0]` only
 - [ ] Add unit tests for tail filling (`fillTail` / `floodFill`) and Color
@@ -25,3 +26,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 18:04: Login screen: placeholder title replaced with a coloured tile "BLOCKLY.IO" logo in HTML/CSS (smaller on narrow screens); not checked visually (no browser preview available in the automated run)
 - 2026-10-24 18:05: Mobile, part 1: swipe controls for touch screens (unit-tested heading logic); UI bar layout on phones still open
 - 2026-10-24 18:07: Frame verification back on: clients check player locations with the server once per second and request a resync on mismatch; server rejects malformed `verify` payloads instead of crashing on null entries
+- 2026-10-24 18:08: Resync keeps kills, zoom, view and land bars, and no longer replays the drop-in animation for the whole map

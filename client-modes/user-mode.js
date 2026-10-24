@@ -57,20 +57,24 @@ function updateSize()
     centerOnPlayer(user, offset);
 }
 
-function reset() {
+//keepView is true when the client only resyncs with the server, so that
+//the zoom, view and land bars don't jump back to the start.
+function reset(keepView) {
   animateGrid = new core.Grid(GRID_SIZE);
   
   playerPortion = [];
+  user = null;
+  showedDead = false;
+  if (keepView)
+    return;
+  
   portionsRolling = [];
   barProportionRolling = [];
   
   animateTo = [0, 0];
   offset = [0, 0];
   
-  user = null;
   zoom = 1;
-  
-  showedDead = false;
 }
 
 reset();
@@ -212,7 +216,6 @@ function paintUIBar(ctx)
   ctx.fillStyle = user ? user.shadowColor.rgbString() : "";
   ctx.fillRect(barOffset, CELL_WIDTH, barSize, SHADOW_OFFSET);
   
-  //TODO: dont reset kill count and zoom when we request frames.
   //Percentage
   ctx.fillStyle = "white";
   ctx.font = "18px Changa";
@@ -422,8 +425,11 @@ function showStats() {
 module.exports = exports = {
   addPlayer: function(player) {
     playerPortion[player.num] = 0;
-    portionsRolling[player.num] = new Rolling(9 / GRID_SIZE / GRID_SIZE, ANIMATE_FRAMES);
-    barProportionRolling[player.num] = new Rolling(0, ANIMATE_FRAMES);
+    //Rollings are kept on a resync, so the bars carry on from where they were.
+    if (!portionsRolling[player.num])
+      portionsRolling[player.num] = new Rolling(9 / GRID_SIZE / GRID_SIZE, ANIMATE_FRAMES);
+    if (!barProportionRolling[player.num])
+      barProportionRolling[player.num] = new Rolling(0, ANIMATE_FRAMES);
   },
   disconnect: function() {
     //Show score stats.

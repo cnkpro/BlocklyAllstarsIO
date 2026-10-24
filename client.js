@@ -89,7 +89,9 @@ function connectGame(url, name, callback) {
     //TODO: display data.gameid --- game id #
     frame = data.frame;
     
-    reset();
+    //Same player again means we requested this frame to resync.
+    var resync = !!user && user.num === data.num;
+    reset(resync);
     
     //Load players.
     data.players.forEach(function(p) {
@@ -101,14 +103,18 @@ function connectGame(url, name, callback) {
       throw new Error();
     setUser(user);
     
-    //Load grid.
+    //Load grid. (Don't animate the whole map again when resyncing)
     var gridData = new Uint8Array(data.grid);
+    var animate = allowAnimation;
+    if (resync)
+      allowAnimation = false;
     for (var r = 0; r < grid.size; r++)
       for (var c = 0; c < grid.size; c++)
       {
         var ind = gridData[r * grid.size + c] - 1;
         grid.set(r, c, ind === -1 ? null : players[ind]);
       }
+    allowAnimation = animate;
     
     invokeRenderer('paint', []);
     frame = data.frame;
@@ -335,15 +341,17 @@ function paintLoop()
   }
 }
 
-function reset() {
+//keepStats is true when we only reload the game state to resync with the server.
+function reset(keepStats) {
   user = null;
   
   grid.reset();
   players = [];
   allPlayers = [];
-  kills = 0;
+  if (!keepStats)
+    kills = 0;
   
-  invokeRenderer('reset');
+  invokeRenderer('reset', [!!keepStats]);
 }
 
 function setUser(player) {

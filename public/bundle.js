@@ -184,20 +184,24 @@ function updateSize()
     centerOnPlayer(user, offset);
 }
 
-function reset() {
+//keepView is true when the client only resyncs with the server, so that
+//the zoom, view and land bars don't jump back to the start.
+function reset(keepView) {
   animateGrid = new core.Grid(GRID_SIZE);
   
   playerPortion = [];
+  user = null;
+  showedDead = false;
+  if (keepView)
+    return;
+  
   portionsRolling = [];
   barProportionRolling = [];
   
   animateTo = [0, 0];
   offset = [0, 0];
   
-  user = null;
   zoom = 1;
-  
-  showedDead = false;
 }
 
 reset();
@@ -339,7 +343,6 @@ function paintUIBar(ctx)
   ctx.fillStyle = user ? user.shadowColor.rgbString() : "";
   ctx.fillRect(barOffset, CELL_WIDTH, barSize, SHADOW_OFFSET);
   
-  //TODO: dont reset kill count and zoom when we request frames.
   //Percentage
   ctx.fillStyle = "white";
   ctx.font = "18px Changa";
@@ -549,8 +552,11 @@ function showStats() {
 module.exports = exports = {
   addPlayer: function(player) {
     playerPortion[player.num] = 0;
-    portionsRolling[player.num] = new Rolling(9 / GRID_SIZE / GRID_SIZE, ANIMATE_FRAMES);
-    barProportionRolling[player.num] = new Rolling(0, ANIMATE_FRAMES);
+    //Rollings are kept on a resync, so the bars carry on from where they were.
+    if (!portionsRolling[player.num])
+      portionsRolling[player.num] = new Rolling(9 / GRID_SIZE / GRID_SIZE, ANIMATE_FRAMES);
+    if (!barProportionRolling[player.num])
+      barProportionRolling[player.num] = new Rolling(0, ANIMATE_FRAMES);
   },
   disconnect: function() {
     //Show score stats.
@@ -688,7 +694,9 @@ function connectGame(url, name, callback) {
     //TODO: display data.gameid --- game id #
     frame = data.frame;
     
-    reset();
+    //Same player again means we requested this frame to resync.
+    var resync = !!user && user.num === data.num;
+    reset(resync);
     
     //Load players.
     data.players.forEach(function(p) {
@@ -700,14 +708,18 @@ function connectGame(url, name, callback) {
       throw new Error();
     setUser(user);
     
-    //Load grid.
+    //Load grid. (Don't animate the whole map again when resyncing)
     var gridData = new Uint8Array(data.grid);
+    var animate = allowAnimation;
+    if (resync)
+      allowAnimation = false;
     for (var r = 0; r < grid.size; r++)
       for (var c = 0; c < grid.size; c++)
       {
         var ind = gridData[r * grid.size + c] - 1;
         grid.set(r, c, ind === -1 ? null : players[ind]);
       }
+    allowAnimation = animate;
     
     invokeRenderer('paint', []);
     frame = data.frame;
@@ -934,15 +946,17 @@ function paintLoop()
   }
 }
 
-function reset() {
+//keepStats is true when we only reload the game state to resync with the server.
+function reset(keepStats) {
   user = null;
   
   grid.reset();
   players = [];
   allPlayers = [];
-  kills = 0;
+  if (!keepStats)
+    kills = 0;
   
-  invokeRenderer('reset');
+  invokeRenderer('reset', [!!keepStats]);
 }
 
 function setUser(player) {
