@@ -269,6 +269,27 @@ function Game(id)
   }
 }
 
+//Adds the client to the requested game, or else to the first game with
+//room, and opens a new game when all of them are full (up to maxGames).
+//Returns the game the client joined, or null.
+Game.join = function(games, client, name, gameid, maxGames)
+{
+  if (checkInt(gameid, 0, games.length) && games[gameid].addPlayer(client, name))
+    return games[gameid];
+  
+  for (var i = 0; i < games.length; i++)
+  {
+    if (i !== gameid && games[i].addPlayer(client, name))
+      return games[i];
+  }
+  
+  if (games.length >= maxGames)
+    return null;
+  var game = new Game(games.length);
+  games.push(game);
+  return game.addPlayer(client, name) ? game : null;
+};
+
 function checkInt(value, min, max)
 {
   if (typeof value !== "number")

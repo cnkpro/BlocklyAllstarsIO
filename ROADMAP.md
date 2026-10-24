@@ -16,7 +16,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - No automated test for the resync path yet (the client socket is private); worth a manual check by forcing a `requestFrame`
 - [x] Death animation: tail rewinds / player explodes (TODO in `user-mode.js`)
   - Done as: block bursts into 3x3 pieces and the tail fades out over `ANIMATE_FRAMES`. A real tail "rewind" is still open if wanted; not checked in a browser yet
-- [ ] Server: support more than one game room instead of `games[0]` only
+- [x] Server: support more than one game room instead of `games[0]` only
+  - Rooms are never closed once opened (max 8, `MAX_GAMES` in `server.js`); empty extra rooms keep ticking. Could close empty rooms or show the room number in the client later
 - [ ] Add unit tests for tail filling (`fillTail` / `floodFill`) and Color
 - [ ] Add an ESLint config and fix warnings (implicit globals like `steps`, `distWeights` in bot-mode.js)
 
@@ -29,3 +30,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 18:07: Frame verification back on: clients check player locations with the server once per second and request a resync on mismatch; server rejects malformed `verify` payloads instead of crashing on null entries
 - 2026-10-24 18:08: Resync keeps kills, zoom, view and land bars, and no longer replays the drop-in animation for the whole map
 - 2026-10-24 18:09: Death animation: dead players explode into pieces and their tail fades (`client-modes/explosion.js`, unit-tested); needs a visual check
+- 2026-10-24 18:10: Game rooms: players join the requested room, else the first with space, else a new room (up to 8); all rooms tick (`Game.join`, unit-tested)

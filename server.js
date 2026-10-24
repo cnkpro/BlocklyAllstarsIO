@@ -23,7 +23,8 @@ var server = http.createServer(function onRequest (req, res) {
 var io = require('socket.io')(server, {transports: ['websocket']});
 
 var Game = require('./game-server.js');
-var games = [new Game()];
+var MAX_GAMES = 8;
+var games = [new Game(0)];
 io.on('connection', function(socket){
   socket.on("hello", function(data, fn) {
     if (typeof fn !== "function")
@@ -36,8 +37,8 @@ io.on('connection', function(socket){
       fn(false, "Your name is too long!");
     else if (socket.joined)
       fn(false, "Already joined a game!");
-    else if (!games[0].addPlayer(socket, data.name))
-      fn(false, "Game is too full!");
+    else if (!Game.join(games, socket, data.name, data.gameid, MAX_GAMES))
+      fn(false, "All games are full!");
     else
     {
       socket.joined = true;
@@ -55,7 +56,9 @@ server.listen(port, hostname, function() {
 });
 
 function tick() {
-  games[0].tickFrame();
+  games.forEach(function(game) {
+    game.tickFrame();
+  });
   setTimeout(tick, 1000 / 60);
 }
 tick();

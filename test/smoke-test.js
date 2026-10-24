@@ -4,6 +4,7 @@ var path = require("path");
 var childProcess = require("child_process");
 var io = require("socket.io-client");
 var core = require("../game-core");
+var Game = require("../game-server");
 var GameStats = require("../client-modes/stats");
 var swipeHeading = require("../client-modes/swipe");
 var explosionPieces = require("../client-modes/explosion");
@@ -78,6 +79,19 @@ function unitTests() {
       end.forEach(function(piece) { assert.strictEqual(piece.alpha, 0); });
       assert.ok(end[0].x < 0 && end[0].y < 0, "top-left piece flies up-left");
       assert.ok(end[8].x > CELL_WIDTH && end[8].y > CELL_WIDTH, "bottom-right piece flies down-right");
+    });
+  }).then(function() {
+    return check("players go to the requested game, then any game with room, then a new game", function() {
+      function fakeGame(room) {
+        return {addPlayer: function() { return room-- > 0; }};
+      }
+      var fakeClient = {on: function() {}, emit: function() {}};
+      var games = [fakeGame(1), fakeGame(1)];
+      assert.strictEqual(Game.join(games, fakeClient, "a", 1, 3), games[1]);
+      assert.strictEqual(Game.join(games, fakeClient, "b", 1, 3), games[0], "falls back to another game");
+      assert.strictEqual(Game.join(games, fakeClient, "BOT c", "x", 3).id, 2, "opens a new game");
+      assert.strictEqual(games.length, 3);
+      assert.strictEqual(Game.join([fakeGame(0)], fakeClient, "d", -1, 1), null, "no room and no new games");
     });
   }).then(function() {
     return check("end-of-game stats keep the best values and the time alive", function() {
