@@ -1,0 +1,138 @@
+// Basic regression checks. Run with `npm test`.
+var assert = require("assert");
+var path = require("path");
+var childProcess = require("child_process");
+var io = require("socket.io-client");
+var core = require("../game-core");
+
+var CELL_WIDTH = core.CELL_WIDTH;
+var failures = 0;
+
+function check(name, fn) {
+  return Promise.resolve().then(fn).then(function() {
+    console.log("ok   - " + name);
+  }, function(err) {
+    failures++;
+    console.log("FAIL - " + name + "\n       " + (err && err.stack || err));
+  });
+}
+
+function makePlayer(grid, num, col, row, heading, offsetX) {
+  return new core.Player(grid, {
+    num: num,
+    name: "P" + num,
+    posX: col * CELL_WIDTH + (offsetX || 0),
+    posY: row * CELL_WIDTH,
+    currentHeading: heading,
+    waitLag: 60
+  });
+}
+
+function unitTests() {
+  return check("updateFrame removes the right player when another one left the map", function() {
+    var grid = new core.Grid(core.GRID_SIZE);
+    var outOfBounds = makePlayer(grid, 0, 0, 0, 0);   //Heading up off the map.
+    var owner = makePlayer(grid, 1, 10, 10, 1);       //Heading right on its own land.
+    var victim = makePlayer(grid, 2, 10, 10, 3, 30);  //Heading left into the owner.
+    core.initPlayer(grid, owner);
+
+    var players = [outOfBounds, owner, victim];
+    var dead = [];
+    core.updateFrame(grid, players, dead);
+
+    assert.deepStrictEqual(players.map(function(p) { return p.num; }), [1]);
+    assert.deepStrictEqual(dead.map(function(p) { return p.num; }).sort(), [0, 2]);
+  });
+}
+
+function connect(url) {
+  return io(url, {forceNew: true, transports: ["websocket"], reconnection: false});
+}
+
+function emitAck(socket) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return new Promise(function(resolve) {
+    args.push(function() { resolve(Array.prototype.slice.call(arguments)); });
+    socket.emit.apply(socket, args);
+  });
+}
+
+function wait(ms) {
+  return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+
+function serverTests() {
+  var port = 3900 + Math.floor(Math.random() * 100);
+  var url = "http://127.0.0.1:" + port;
+  var root = path.join(__dirname, "..");
+  var output = "";
+  var server = childProcess.spawn(process.execPath, ["server.js", "127.0.0.1", "" + port], {cwd: root});
+  server.stdout.on("data", function(d) { output += d; });
+  server.stderr.on("data", function(d) { output += d; });
+  var bots = [];
+
+  return wait(1000).then(function() {
+    return check("static page and game socket share one port", function() {
+      return new Promise(function(resolve, reject) {
+        require("http").get(url + "/", function(res) {
+          res.resume();
+          res.statusCode === 200 ? resolve() : reject(new Error("HTTP " + res.statusCode));
+        }).on("error", reject);
+      });
+    });
+  }).then(function() {
+    return check("malformed messages are rejected without crashing the server", function() {
+      var s = connect(url);
+      return emitAck(s, "hello", null).then(function(r) {
+        assert.strictEqual(r[0], false);
+        return emitAck(s, "hello", {name: 12345});
+      }).then(function(r) {
+        assert.strictEqual(r[0], false);
+        return emitAck(s, "hello", {name: "tester"});
+      }).then(function(r) {
+        assert.strictEqual(r[0], true);
+        return emitAck(s, "hello", {name: "again"});
+      }).then(function(r) {
+        assert.strictEqual(r[0], false, "a socket should only join once");
+        return emitAck(s, "frame");
+      }).then(function(r) {
+        assert.strictEqual(r[0], false);
+        return emitAck(s, "verify", null);
+      }).then(function(r) {
+        assert.strictEqual(r[0], false);
+        s.emit("verify", {frame: 0}); //No callback.
+        s.disconnect();
+        return wait(200);
+      }).then(function() {
+        assert.strictEqual(server.exitCode, null, "server exited:\n" + output);
+      });
+    });
+  }).then(function() {
+    return check("bots can join and play for a few seconds", function() {
+      ["bot-mode.js", "paper-io-bot-mode.js", "bot-mode.js"].forEach(function(file, i) {
+        var bot = childProcess.spawn(process.execPath,
+          [path.join("client-modes", file), url, "[BOT] " + i], {cwd: root});
+        bot.log = "";
+        bot.stdout.on("data", function(d) { bot.log += d; });
+        bot.stderr.on("data", function(d) { bot.log += d; });
+        bots.push(bot);
+      });
+      return wait(8000).then(function() {
+        assert.strictEqual(server.exitCode, null, "server exited:\n" + output);
+        bots.forEach(function(bot) {
+          assert.strictEqual(bot.exitCode, null, "bot exited:\n" + bot.log);
+          assert.ok(/Connected to game!/.test(bot.log), "bot never joined:\n" + bot.log);
+          assert.ok(!/Frames don't match up|Error/.test(bot.log), "bot reported errors:\n" + bot.log);
+        });
+      });
+    });
+  }).then(function() {
+    bots.forEach(function(bot) { bot.kill(); });
+    server.kill();
+  });
+}
+
+unitTests().then(serverTests).then(function() {
+  console.log(failures ? failures + " test(s) failed" : "all tests passed");
+  process.exit(failures ? 1 : 0);
+});

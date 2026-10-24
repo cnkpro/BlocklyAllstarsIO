@@ -26,7 +26,7 @@ var THRESHOLD = 10;
 var startFrame = -1;
 var endFrame = -1;
 var coeffs = [0.6164220147940495,-2.519369747858328,0.9198978109542851,-1.2158956330674564,-3.072901620397528, 5, 4];
-var grid, others, user, playerPortion;
+var grid, others, user, playerPortion = {}, maxPortion = 0;
 var DIST_TYPES = {
   land: {
     check: function(loc) { return grid.get(loc.row, loc.col) === user; }, 
@@ -38,7 +38,7 @@ var DIST_TYPES = {
     check: foundProto(tail), 
     coeff: function() {return AGGRESSIVE * coeffs[2];}
   }, other: {
-    check: foundProto(function(other, loc) { return other.row === this.row && other.col === this.col; }),
+    check: foundProto(function(other, loc) { return other.row === loc.row && other.col === loc.col; }),
     coeff: function() {return (1 - AGGRESSIVE) * coeffs[3];}
   }, edge: {
     check: function(loc) {return loc.row <= 1 || loc.col <= 1 || loc.row >= GRID_SIZE - 1 || loc.col >= GRID_SIZE - 1},
@@ -70,14 +70,6 @@ function generateLandDirections() {
     for (var j = 0; j < lengths[i]; j++) {
       moves.push(turns[i]);
     }
-  }
-}
-
-var LAND_CLAIMS = {
-  rectDims: function() {
-    var 
-  }, rectSpread: function() {
-
   }
 }
 
@@ -266,7 +258,15 @@ client.renderer = {
     console.log("I killed " + client.kills + " player(s).");
     console.log("Coefficients: " + coeffs)
     
-    var mutation = Math.min(10, Math.pow(2, calcFavorability(params)));
+    var params = {
+      portion: maxPortion / GRID_SIZE / GRID_SIZE,
+      kills: client.kills,
+      survival: dt
+    };
+    maxPortion = 0;
+
+    //Bots that did well mutate less.
+    var mutation = 1 / (1 + calcFavorability(params));
     for (var i = 0; i < coeffs.length; i++) {
       coeffs[i] += Math.random() * mutation * 2 - mutation;
     }
@@ -283,6 +283,8 @@ client.renderer = {
   updateGrid: function(row, col, before, after) {
     before && playerPortion[before.num]--;
     after && playerPortion[after.num]++;
+    if (after && after === user)
+      maxPortion = Math.max(maxPortion, playerPortion[after.num]);
   }
 };
 

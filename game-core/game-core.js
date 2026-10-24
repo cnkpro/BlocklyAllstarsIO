@@ -21,20 +21,22 @@ exports.updateFrame = function(grid, players, dead, notifyKill)
   else
     kill = function(killer, other) {if (!removing[other]) notifyKill(killer, other);};
   
-  //Move players.  
-  var tmp = players.filter(function(val) {
+  //Move players.
+  players.forEach(function(val) {
     val.move();
-    if (val.dead)
-      adead.push(val);
-    return !val.dead;
   });
   
   //Remove players with collisions.
   var removing = new Array(players.length);
   for (var i = 0; i < players.length; i++)
   {
+    //Players that already died (e.g. went out of bounds) can't collide.
+    if (players[i].dead)
+      continue;
     for (var j = i; j < players.length; j++)
     {
+      if (players[j].dead)
+        continue;
       
       //Remove those players when other players have hit their tail.
       if (!removing[j] && players[j].tail.hitsTail(players[i]))
@@ -92,13 +94,15 @@ exports.updateFrame = function(grid, players, dead, notifyKill)
     }
   }
   
-  tmp = tmp.filter(function(val, i) {
-    if (removing[i])
+  //removing[] is indexed by the original players array, so filter that.
+  var tmp = players.filter(function(val, i) {
+    if (val.dead || removing[i])
     {
       adead.push(val);
       val.die();
+      return false;
     }
-    return !removing[i];
+    return true;
   });
   players.length = tmp.length;
   for (var i = 0; i < tmp.length; i++)

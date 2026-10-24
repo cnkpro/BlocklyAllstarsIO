@@ -203,7 +203,7 @@ function paintUIBar(ctx)
   ctx.fillStyle = "rgba(180, 180, 180, .3)";
   ctx.fillRect(barOffset, 0, BAR_WIDTH, BAR_HEIGHT);
   
-  var userPortions = portionsRolling[user.num] ? portionsRolling[user.num].lag : 0;
+  var userPortions = (user && portionsRolling[user.num]) ? portionsRolling[user.num].lag : 0;
   var barSize = Math.ceil((BAR_WIDTH - MIN_BAR_WIDTH) * userPortions + MIN_BAR_WIDTH);
   ctx.fillStyle = user ? user.baseColor.rgbString() : "";
   ctx.fillRect(barOffset, 0, barSize, CELL_WIDTH);
@@ -349,7 +349,7 @@ function update() {
   });
   
   //Zoom goes from 1 to .5, decreasing as portion goes up. TODO: maybe can modify this?
-  if (portionsRolling[user.num])
+  if (user && portionsRolling[user.num])
     zoom = 1 / (portionsRolling[user.num].lag + 1); 
   
   //TODO: animate player is dead. (maybe explosion?), and tail rewinds itself.

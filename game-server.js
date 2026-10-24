@@ -15,7 +15,7 @@ function log(msg) {
 function Game(id)
 { 
   var possColors = new Array(SATS.length * HUES.length);
-  i = 0;
+  var i = 0;
   for (var s = 0; s < SATS.length; s++)
     for (var h = 0; h < HUES.length; h++)
       possColors[i++] = new core.Color(HUES[h], SATS[s], .5, 1);
@@ -63,7 +63,7 @@ function Game(id)
       posX: start.col * CELL_WIDTH,
       posY: start.row * CELL_WIDTH,
       currentHeading: Math.floor(Math.random() * 4),
-      name: name,
+      name: typeof name === "string" ? name : "",
       num: nextInd, 
       base: possColors.shift()
     };
@@ -100,7 +100,7 @@ function Game(id)
       if (typeof resp !== "function")
         return;
       
-      if (!data.frame)
+      if (!data || data.frame === undefined)
         resp(false, false, "No frame supplied");
       else if (!checkInt(data.frame, 0, frame + 1))
         resp(false, false, "Must be a valid frame number");
@@ -113,7 +113,7 @@ function Game(id)
     client.on("frame", function(data, errorHan){
       if (typeof data === "function")
       {
-        errorHan(false, "No data supplied.");
+        data(false, "No data supplied.");
         return;
       }
       

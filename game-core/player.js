@@ -434,7 +434,8 @@ Player.prototype.render = function(ctx, fade)
   this.tail.renderTail(ctx);
   
   //Render player.
-  fade = fade || 1;
+  if (fade === undefined)
+    fade = 1;
   ctx.fillStyle = this.shadowColor.deriveAlpha(fade).rgbString();
   ctx.fillRect(this.posX, this.posY, CELL_WIDTH, CELL_WIDTH);
   

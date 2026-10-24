@@ -45,7 +45,7 @@ if ( !requestAnimationFrame ) {
 }
 
 function run() {
-  client.connectGame('//' + window.location.hostname + ':8081', $('#name').val(), function(success, msg) {
+  client.connectGame(window.location.origin, $('#name').val(), function(success, msg) {
     if (success) 
     {
       $("#begin").addClass("hidden");
@@ -72,7 +72,7 @@ $(function() {
   
   error.text("Loading..."); //TODO: show loading screen.
   var success = false;
-  var socket = io('http://' + window.location.hostname + ':8081', {
+  var socket = io(window.location.origin, {
     'forceNew': true,
     upgrade: false,
     transports: ['websocket']
@@ -85,22 +85,19 @@ $(function() {
   socket.emit("checkConn", function() {
     success = true;
     socket.disconnect();
+    error.text("");
+    $("input").keypress(function(evt) {
+      if (evt.which === 13)
+        requestAnimationFrame(run);
+    });
+    $("button").click(function(evt) {
+      requestAnimationFrame(run);
+    });
   });
   setTimeout(function() {
     if (!success)
       error.text("Cannot connect with server. This probably is due to misconfigured proxy server. (Try using a different browser)");
-    else
-    {
-      error.text("");
-      $("input").keypress(function(evt) {
-        if (evt.which === 13)
-          requestAnimationFrame(run);
-      });
-      $("button").click(function(evt) {
-        requestAnimationFrame(run);
-      });
-    }
-  }, 2000);
+  }, 5000);
 });
 
 

@@ -8,22 +8,35 @@ This is just a fun side-project for me. If you would want to use this code, it w
 
 ## Running
 
-After cloning this repository, run the follow commands to install dependencies and set up server. Enjoy!
+After cloning this repository, run the following commands to install dependencies and start the server:
 
 ```bash
 npm install
 npm start
 ```
 
-### Creating bundle.js
-To create the `public/bundle.js` file, you probably need to run something like the following commands:
+Then open http://localhost:3000. The page and the game socket are served on the same port.
+To use a different host/port, run `node server.js <hostname> <port>` or set the `PORT` environment variable.
+
+### Bots
+With the server running, you can add AI players:
+
 ```bash
-sudo npm install browserify -g
-browserify game-client.js > public/bundle.js
+npm run bot -- http://localhost:3000 "[BOT] Bob"
+npm run paper-io-bot -- http://localhost:3000
 ```
 
-Or something like that. 
+### Creating bundle.js
+`public/bundle.js` is built from `game-client.js` with browserify. Rebuild it after changing any client code:
 
+```bash
+npm run build
+```
+
+### Tests
+```bash
+npm test
+```
 
 ## License
 

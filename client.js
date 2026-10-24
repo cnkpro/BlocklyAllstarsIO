@@ -244,22 +244,20 @@ function processFrame(data)
     });
   }
   
-  var found = new Array(players.length);
-  data.moves.forEach(function(val, i) {
+  var found = {};
+  data.moves.forEach(function(val) {
     var player = allPlayers[val.num];
     if (!player) return;
     if (val.left) player.die();
-    found[i] = true;
+    found[val.num] = true;
     player.heading = val.heading;
   });
   for (var i = 0; i < players.length; i++)
   {
     //Implicitly leaving game.
-    if (!found[i])
-    {
-      var player = players[i];
-      player && player.die();
-    }
+    var player = players[i];
+    if (player && !found[player.num])
+      player.die();
   }
   
   update();
