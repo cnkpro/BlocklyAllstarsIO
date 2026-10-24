@@ -46,6 +46,9 @@ function run() {
   client.connectGame(window.location.origin, $('#name').val(), function(success, msg) {
     if (success) 
     {
+      //Some browsers keep the focus on a hidden name field, which would
+      //swallow the steering keys.
+      $("#begin :focus").blur();
       $("#begin").addClass("hidden");
       $("#begin").animate({
           opacity: 0

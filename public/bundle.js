@@ -74,11 +74,12 @@ module.exports = hudLayout;
 },{}],3:[function(require,module,exports){
 //Turns a key press into a heading (0 = up, 1 = right, 2 = down, 3 = left).
 //Returns -1 for other keys, and for keys typed into a text field (so that
-//the name field still takes W, A, S, D and the arrow keys).
+//the name field still takes W, A, S, D and the arrow keys). A hidden field
+//doesn't count: some browsers keep the focus on it once the game starts.
 function keyHeading(which, target)
 {
   var tag = target && target.tagName;
-  if (tag === "INPUT" || tag === "TEXTAREA")
+  if ((tag === "INPUT" || tag === "TEXTAREA") && isShown(target))
     return -1;
   switch (which)
   {
@@ -95,6 +96,12 @@ function keyHeading(which, target)
     case 83: return 2; //DOWN (S)
     default: return -1;
   }
+}
+
+//Same test as jQuery's :visible (display: none has no boxes).
+function isShown(el)
+{
+  return typeof el.getClientRects !== "function" || el.getClientRects().length > 0;
 }
 
 module.exports = keyHeading;
@@ -1189,6 +1196,9 @@ function run() {
   client.connectGame(window.location.origin, $('#name').val(), function(success, msg) {
     if (success) 
     {
+      //Some browsers keep the focus on a hidden name field, which would
+      //swallow the steering keys.
+      $("#begin :focus").blur();
       $("#begin").addClass("hidden");
       $("#begin").animate({
           opacity: 0

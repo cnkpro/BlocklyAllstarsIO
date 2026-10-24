@@ -77,6 +77,10 @@ function unitTests() {
       assert.strictEqual(keyHeading(13, page), -1, "other keys");
       assert.strictEqual(keyHeading(65, {tagName: "INPUT"}), -1, "typing in the name field");
       assert.strictEqual(keyHeading(37, {tagName: "INPUT"}), -1, "moving the cursor in the name field");
+      var shownField = {tagName: "INPUT", getClientRects: function() { return [{}]; }};
+      var hiddenField = {tagName: "INPUT", getClientRects: function() { return []; }};
+      assert.strictEqual(keyHeading(65, shownField), -1, "typing in the shown name field");
+      assert.strictEqual(keyHeading(65, hiddenField), 3, "name field still focused after it was hidden");
     });
   }).then(function() {
     return check("UI bars shrink to fit narrow screens", function() {

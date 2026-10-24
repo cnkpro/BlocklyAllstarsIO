@@ -36,6 +36,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed: key mapping moved to `client-modes/keys.js` (unit-tested) and ignores keys typed into text fields; not checked in a browser (preview server declined)
 - [x] A refused join ("All games are full!") left the client's socket open; bots retry every second, so a full server collected one more open socket per bot per second (found in code review)
   - Fixed: `connectGame` closes the socket when `hello` fails (tested with the fake socket)
+- [x] Keyboard steering can stop working right after pressing Enter to play: the name field is hidden but may keep the focus, and the steering handler ignores keys typed into text fields (regression from the W/A/S/D fix, found in code review)
+  - Fixed: the login screen's focused element is blurred on join, and `keys.js` only treats a text field as typing while it is shown (unit-tested); not checked in a browser (preview server declined)
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -60,3 +62,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 20:10: Fixed clients losing track of the start area of players who joined in the same frame as them; fake-socket test helper shared by both client tests
 - 2026-10-24 20:14: Name field takes W/A/S/D and arrow keys again (steering keys only outside text fields, `client-modes/keys.js`)
 - 2026-10-24 20:16: Refused joins close their socket, so retrying bots no longer pile up connections on a full server
+- 2026-10-24 21:20: Code review (backlog empty): keyboard steering no longer depends on the browser moving the focus off the hidden name field after Enter
