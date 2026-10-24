@@ -30,6 +30,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed: spawn spots also avoid every tail cell and the 5x5 area around each head
 - [x] Client hangs (endless loop) when it resyncs after a missed frame: the cached-frame replay in `client.js` started one frame too early, which mismatched and re-requested forever (found in code review)
   - Fixed: replay skips cached frames the new game state already includes; tested with a fake socket. Not reproducible by hand in a browser (needs a dropped frame)
+- [x] Clients give a player's start area to a throwaway copy when that player is announced as new but already in the loaded game state (joined in the same frame, or right before a resync), so the client draws a tail the server doesn't have (found in code review)
+  - Fixed: `processFrame` skips new players it already knows; tested with the fake socket
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -51,3 +53,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 19:10: README: "Playing" section (controls incl. touch, score screen, rooms). Sprint summary left for the 00:00 run
 - 2026-10-24 20:04: Code review (backlog empty): spawn spots now avoid tails and heads, so joining no longer kills a player who is out drawing a tail (`Game.findEmpty`, unit-tested)
 - 2026-10-24 20:07: Fixed a client hang on resync after a missed frame (off-by-one in the frame-cache replay turned into an endless request loop); unit test drives `client.js` with a fake socket
+- 2026-10-24 20:10: Fixed clients losing track of the start area of players who joined in the same frame as them; fake-socket test helper shared by both client tests

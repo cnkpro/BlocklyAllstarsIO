@@ -244,7 +244,8 @@ function processFrame(data)
   if (data.newPlayers)
   {
     data.newPlayers.forEach(function(p) {
-      if (p.num === user.num)
+      //Players in the game state we loaded are already set up.
+      if (p.num === user.num || allPlayers[p.num])
         return;
       var pl = new Player(grid, p);
       addPlayer(pl);

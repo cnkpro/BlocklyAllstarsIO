@@ -235,56 +235,96 @@ function unitTests() {
     });
   }).then(function() {
     return check("client resyncs after a missed frame and carries on", function() {
-      //Load client.js with a fake socket we can feed server messages into.
-      var requests = 0;
-      var fake = {
-        handlers: {},
-        connected: true,
-        on: function(name, fn) { this.handlers[name] = fn; },
-        emit: function(name, data, ack) {
-          if (name === "requestFrame" && ++requests > 3)
-            throw new Error("client keeps requesting frames");
-          if (name === "hello")
-            ack(true);
-        },
-        disconnect: function() { this.connected = false; },
-        receive: function(name, data) { this.handlers[name](data); }
-      };
-      var ioModule = require.cache[require.resolve("socket.io-client")];
-      var realIo = ioModule.exports;
-      ioModule.exports = function() { return fake; };
-      var client;
-      try {
-        client = require("../client.js");
-      } finally {
-        ioModule.exports = realIo;
-      }
+      var fake = connectFakeClient();
       var updates = [];
-      client.renderer = {update: function(fr) { updates.push(fr); }};
-      client.connectGame("http://fake", "P0");
+      fake.client.renderer = {update: function(fr) { updates.push(fr); }};
 
-      var grid = new core.Grid(core.GRID_SIZE);
-      function game(fr) {
-        return {num: 0, gameid: 0, frame: fr, players: [makePlayer(grid, 0, 10, 10, 1).serialData()],
-          grid: Buffer.alloc(core.GRID_SIZE * core.GRID_SIZE)};
-      }
-      function notify(fr) {
-        return {frame: fr, moves: [{num: 0, left: false, heading: 1}]};
-      }
-      fake.receive("game", game(10));
-      fake.receive("notifyFrame", notify(11));
-      fake.receive("notifyFrame", notify(13)); //Missed 12.
-      assert.strictEqual(requests, 1, "asks for the game state");
-      fake.receive("notifyFrame", notify(14)); //Cached until the state arrives.
-      fake.receive("game", game(14)); //Already includes 13 and 14.
-      fake.receive("notifyFrame", notify(15));
-      assert.strictEqual(requests, 1, "no further requests");
+      fake.receive("game", fakeGame(10, 1));
+      fake.receive("notifyFrame", fakeNotify(11, 1));
+      fake.receive("notifyFrame", fakeNotify(13, 1)); //Missed 12.
+      assert.strictEqual(fake.requests, 1, "asks for the game state");
+      fake.receive("notifyFrame", fakeNotify(14, 1)); //Cached until the state arrives.
+      fake.receive("game", fakeGame(14, 1)); //Already includes 13 and 14.
+      fake.receive("notifyFrame", fakeNotify(15, 1));
+      assert.strictEqual(fake.requests, 1, "no further requests");
       assert.deepStrictEqual(updates, [11, 15]);
 
       //End the game so no timers keep running.
       fake.receive("disconnect");
     });
+  }).then(function() {
+    return check("client keeps the land of players that joined in the same frame", function() {
+      var fake = connectFakeClient();
+      var state = fakeGame(10, 2);
+      var other = state.players[1];
+      //The other player's start area is already in the game state...
+      for (var r = 19; r <= 21; r++)
+        for (var c = 19; c <= 21; c++)
+          state.grid[r * core.GRID_SIZE + c] = 2;
+      fake.receive("game", state);
+      //...and the next frame announces them as new.
+      var next = fakeNotify(11, 2);
+      next.newPlayers = state.players;
+      fake.receive("notifyFrame", next);
+
+      var pl = fake.client.getOthers()[0];
+      assert.strictEqual(pl.num, other.num);
+      assert.strictEqual(fake.client.grid.get(20, 20), pl, "start area belongs to the player we know");
+      fake.receive("disconnect");
+    });
   });
+}
+
+//Loads client.js (once) with a fake socket that the test feeds server
+//messages into, and connects it to a new fake game.
+var fakeClient = null;
+var nextFakeSocket = null;
+function connectFakeClient() {
+  var fake = nextFakeSocket = {
+    handlers: {},
+    connected: true,
+    requests: 0,
+    on: function(name, fn) { this.handlers[name] = fn; },
+    emit: function(name, data, ack) {
+      if (name === "requestFrame" && ++this.requests > 3)
+        throw new Error("client keeps requesting frames");
+      if (name === "hello")
+        ack(true);
+    },
+    disconnect: function() { this.connected = false; },
+    receive: function(name, data) { this.handlers[name](data); }
+  };
+  if (!fakeClient)
+  {
+    var ioModule = require.cache[require.resolve("socket.io-client")];
+    var realIo = ioModule.exports;
+    ioModule.exports = function() { return nextFakeSocket; };
+    try {
+      fakeClient = require("../client.js");
+    } finally {
+      ioModule.exports = realIo;
+    }
+  }
+  fakeClient.renderer = null;
+  fakeClient.connectGame("http://fake", "P0");
+  fake.client = fakeClient;
+  return fake;
+}
+
+//Game state with `count` players (we are player 0), one every 10 cells.
+function fakeGame(fr, count) {
+  var grid = new core.Grid(core.GRID_SIZE);
+  var players = [];
+  for (var i = 0; i < count; i++)
+    players.push(makePlayer(grid, i, 10 + 10 * i, 10 + 10 * i, 1).serialData());
+  return {num: 0, gameid: 0, frame: fr, players: players, grid: Buffer.alloc(core.GRID_SIZE * core.GRID_SIZE)};
+}
+
+function fakeNotify(fr, count) {
+  var moves = [];
+  for (var i = 0; i < count; i++)
+    moves.push({num: i, left: false, heading: 1});
+  return {frame: fr, moves: moves};
 }
 
 function connect(url) {
