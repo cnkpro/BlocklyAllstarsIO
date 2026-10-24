@@ -4,6 +4,12 @@ This is a clone of the original Paper-IO released by Voodoo, except for one aspe
 
 This is just a fun side-project for me. If you would want to use this code, it would be nice to let me know.
 
+## Playing
+
+- Steer with the arrow keys or WASD. On phones and tablets, swipe or use the on-screen arrows.
+- Leave your land to draw a tail, then come back to claim the area it encloses. Hitting another player's tail kills them; if someone hits yours, you're out.
+- When you die, you see your final and best land share, kills, best rank and time alive before the next round.
+- Each server room holds up to 81 players. New rooms open when the others are full (up to 8), and empty ones are closed again.
 
 
 ## Running

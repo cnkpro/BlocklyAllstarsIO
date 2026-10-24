@@ -44,3 +44,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 19:07: Code review (backlog was empty): empty extra rooms are now closed and rooms are looked up by id instead of array index (unit-tested). Found: server ticks at ~36/s instead of 60 on Windows (`setTimeout` resolution); fixing next
 - 2026-10-24 19:08: Server tick rate fixed: fixed-step `ticker.js` catches up late timer wake-ups (measured 36.5 -> 60 ticks/s; real-time test added)
 - 2026-10-24 19:10: Review of `client.js`/`game-core`: kill counting and heading checks are fine (the server does not reject a reversed heading, but that only lets a modified client kill itself). Name field now limited to 32 characters like the server
+- 2026-10-24 19:10: README: "Playing" section (controls incl. touch, score screen, rooms). Sprint summary left for the 00:00 run
