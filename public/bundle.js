@@ -703,7 +703,7 @@ function fillStats() {
   
   var panel = $("<div>").addClass("center");
   panel.append($("<h1>").text("Game over!"));
-  panel.append($("<small>").text(user && user.name ? user.name : "Unnamed"));
+  panel.append($("<span>").addClass("player-name").text(user && user.name ? user.name : "Unnamed"));
   panel.append(table);
   $("#stats").empty().append(panel);
 }
