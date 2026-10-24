@@ -233,6 +233,57 @@ function unitTests() {
       assert.deepStrictEqual(stats.rows()[3], ["Best rank", "--"]);
       assert.strictEqual(GameStats.formatTime(3599999), "59:59");
     });
+  }).then(function() {
+    return check("client resyncs after a missed frame and carries on", function() {
+      //Load client.js with a fake socket we can feed server messages into.
+      var requests = 0;
+      var fake = {
+        handlers: {},
+        connected: true,
+        on: function(name, fn) { this.handlers[name] = fn; },
+        emit: function(name, data, ack) {
+          if (name === "requestFrame" && ++requests > 3)
+            throw new Error("client keeps requesting frames");
+          if (name === "hello")
+            ack(true);
+        },
+        disconnect: function() { this.connected = false; },
+        receive: function(name, data) { this.handlers[name](data); }
+      };
+      var ioModule = require.cache[require.resolve("socket.io-client")];
+      var realIo = ioModule.exports;
+      ioModule.exports = function() { return fake; };
+      var client;
+      try {
+        client = require("../client.js");
+      } finally {
+        ioModule.exports = realIo;
+      }
+      var updates = [];
+      client.renderer = {update: function(fr) { updates.push(fr); }};
+      client.connectGame("http://fake", "P0");
+
+      var grid = new core.Grid(core.GRID_SIZE);
+      function game(fr) {
+        return {num: 0, gameid: 0, frame: fr, players: [makePlayer(grid, 0, 10, 10, 1).serialData()],
+          grid: Buffer.alloc(core.GRID_SIZE * core.GRID_SIZE)};
+      }
+      function notify(fr) {
+        return {frame: fr, moves: [{num: 0, left: false, heading: 1}]};
+      }
+      fake.receive("game", game(10));
+      fake.receive("notifyFrame", notify(11));
+      fake.receive("notifyFrame", notify(13)); //Missed 12.
+      assert.strictEqual(requests, 1, "asks for the game state");
+      fake.receive("notifyFrame", notify(14)); //Cached until the state arrives.
+      fake.receive("game", game(14)); //Already includes 13 and 14.
+      fake.receive("notifyFrame", notify(15));
+      assert.strictEqual(requests, 1, "no further requests");
+      assert.deepStrictEqual(updates, [11, 15]);
+
+      //End the game so no timers keep running.
+      fake.receive("disconnect");
+    });
   });
 }
 

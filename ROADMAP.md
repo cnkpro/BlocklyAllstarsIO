@@ -28,6 +28,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed with a catch-up ticker (`ticker.js`); when the timer wakes late, two frames can go out at once, so check that movement still looks smooth in a browser
 - [x] New players can spawn on another player's tail or next to their head (`findEmpty` only checked owned land), which kills that player on the spot (found in code review)
   - Fixed: spawn spots also avoid every tail cell and the 5x5 area around each head
+- [x] Client hangs (endless loop) when it resyncs after a missed frame: the cached-frame replay in `client.js` started one frame too early, which mismatched and re-requested forever (found in code review)
+  - Fixed: replay skips cached frames the new game state already includes; tested with a fake socket. Not reproducible by hand in a browser (needs a dropped frame)
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -48,3 +50,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 19:10: Review of `client.js`/`game-core`: kill counting and heading checks are fine (the server does not reject a reversed heading, but that only lets a modified client kill itself). Name field now limited to 32 characters like the server
 - 2026-10-24 19:10: README: "Playing" section (controls incl. touch, score screen, rooms). Sprint summary left for the 00:00 run
 - 2026-10-24 20:04: Code review (backlog empty): spawn spots now avoid tails and heads, so joining no longer kills a player who is out drawing a tail (`Game.findEmpty`, unit-tested)
+- 2026-10-24 20:07: Fixed a client hang on resync after a missed frame (off-by-one in the frame-cache replay turned into an endless request loop); unit test drives `client.js` with a fake socket

@@ -830,12 +830,15 @@ function connectGame(url, name, callback) {
     
     if (requesting !== -1)
     {
-      //Update those cache frames after we updated game.
-      var minFrame = requesting;
+      //Update those cache frames after we updated game. Skip the ones this
+      //game state already includes (a replayed old frame would mismatch and
+      //request again forever).
+      var cached = frameCache;
       requesting = -1;
-      while (frameCache.length > frame - minFrame)
-        processFrame(frameCache[frame - minFrame]);
       frameCache = [];
+      for (var i = 0; i < cached.length; i++)
+        if (cached[i].frame > frame)
+          processFrame(cached[i]);
     }
   });
   
