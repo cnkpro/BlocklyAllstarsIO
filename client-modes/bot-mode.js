@@ -110,19 +110,10 @@ function tail(player, loc) {
 }
 
 function traverseGrid(dir) {
-  steps = new Array(GRID_SIZE * GRID_SIZE);
-  for (var i in steps) {
-    steps[i] = -1;
-  }
-
-  distWeights = {};
+  var distWeights = {};
   for (var type in DIST_TYPES) {
     distWeights[type] = 0;
   }
-
-  var row = user.row, col = user.col;
-  var minRow = Math.max(0, row - 10), maxRow = Math.min(GRID_SIZE, row + 10);
-  var minCol = Math.max(0, col - 10), maxCol = Math.min(GRID_SIZE, col + 10);
 
   var proj = 0;
   for (var i = 1; i >= -1; i-=2) {
@@ -199,7 +190,7 @@ function update(frame) {
       var weight = 0;
 
       d = (d + user.currentHeading) % 4;
-      distWeights = traverseGrid(d);
+      var distWeights = traverseGrid(d);
 
       var str = d + ": "
       for (var distType in DIST_TYPES) {

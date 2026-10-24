@@ -3,8 +3,6 @@ var Player = core.Player;
 
 var io = require('socket.io-client');
 
-var GRID_SIZE = core.GRID_SIZE;
-var CELL_WIDTH = core.CELL_WIDTH;
 var VERIFY_INTERVAL = 60; //Check our player locations with the server once per second.
 
 var running = false;

@@ -672,8 +672,6 @@ var Player = core.Player;
 
 var io = require('socket.io-client');
 
-var GRID_SIZE = core.GRID_SIZE;
-var CELL_WIDTH = core.CELL_WIDTH;
 var VERIFY_INTERVAL = 60; //Check our player locations with the server once per second.
 
 var running = false;
@@ -1070,12 +1068,8 @@ Object.defineProperties(exports, {
 },{"./game-core":12,"socket.io-client":40}],7:[function(require,module,exports){
 /* global $ */
 var client = require("./client");
-var core = require("./game-core");
 var io = require('socket.io-client');
 var swipeHeading = require("./client-modes/swipe");
-
-var GRID_SIZE = core.GRID_SIZE;
-var CELL_WIDTH = core.CELL_WIDTH;
 
 client.allowAnimation = true;
 client.renderer = require("./client-modes/user-mode");
@@ -1223,7 +1217,7 @@ document.addEventListener("touchend", function(e) {
     touchStart = null;
 });
 
-},{"./client":6,"./client-modes/swipe":4,"./client-modes/user-mode":5,"./game-core":12,"socket.io-client":40}],8:[function(require,module,exports){
+},{"./client":6,"./client-modes/swipe":4,"./client-modes/user-mode":5,"socket.io-client":40}],8:[function(require,module,exports){
 
 
 function Color(h, s, l, a)

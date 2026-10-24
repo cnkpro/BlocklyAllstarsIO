@@ -61,6 +61,7 @@ function update(frame) {
     //areas (and some tweaks), otherwise, the original logic is about the same.
     var row = user.row, col = user.col, dir = user.currentHeading;
     var thres = (.05 + .1 * Math.random()) * GRID_SIZE * GRID_SIZE;
+    var weights, turns, lengths;
 
     if (row < 0 || col < 0 || row >= GRID_SIZE || col >= GRID_SIZE) {
       return;

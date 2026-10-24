@@ -8,7 +8,8 @@
     "build": "browserify game-client.js -o public/bundle.js",
     "bot": "node client-modes/bot-mode.js",
     "paper-io-bot": "node client-modes/paper-io-bot-mode.js",
-    "test": "node test/smoke-test.js"
+    "test": "node test/smoke-test.js",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -33,6 +34,8 @@
     "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
-    "browserify": "^17.0.1"
+    "browserify": "^17.0.1",
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0"
   }
 }

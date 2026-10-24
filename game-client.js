@@ -1,11 +1,7 @@
 /* global $ */
 var client = require("./client");
-var core = require("./game-core");
 var io = require('socket.io-client');
 var swipeHeading = require("./client-modes/swipe");
-
-var GRID_SIZE = core.GRID_SIZE;
-var CELL_WIDTH = core.CELL_WIDTH;
 
 client.allowAnimation = true;
 client.renderer = require("./client-modes/user-mode");
