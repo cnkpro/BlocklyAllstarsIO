@@ -271,7 +271,7 @@ $(function () {
 var animateGrid, playerPortion, portionsRolling, 
   barProportionRolling,  animateTo, offset, user, zoom, showedDead, dying;
 var grid = client.grid;
-var stats = new GameStats(); //Not cleared by reset(), since frame requests reset the game.
+var stats = new GameStats(); //Only cleared for a new game, not on a resync.
 
 function updateSize()
 {
@@ -304,7 +304,8 @@ function reset(keepView) {
   dying = [];
   if (keepView)
     return;
-  
+
+  stats.reset();
   portionsRolling = [];
   barProportionRolling = [];
   
@@ -683,8 +684,9 @@ function showStats() {
   $("#begin").animate({
     opacity: .9999
   }, 1000, function() {
+    //Play can be clicked during the fade, so the stats are cleared when the
+    //next game loads (reset) instead of here.
     $("#stats").addClass("hidden").css("opacity", 0);
-    stats.reset();
   });
 }
 

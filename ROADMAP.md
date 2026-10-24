@@ -38,6 +38,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed: `connectGame` closes the socket when `hello` fails (tested with the fake socket)
 - [x] Keyboard steering can stop working right after pressing Enter to play: the name field is hidden but may keep the focus, and the steering handler ignores keys typed into text fields (regression from the W/A/S/D fix, found in code review)
   - Fixed: the login screen's focused element is blurred on join, and `keys.js` only treats a text field as typing while it is shown (unit-tested); not checked in a browser (preview server declined)
+- [x] Clicking Play while the login screen is still fading in after a game wiped the new game's score: `stats.reset()` ran when that fade finished, so the next score screen showed 0% land, 0 kills and 0:00 (found in code review)
+  - Fixed: stats are cleared when a new game loads (renderer `reset`, not on a resync); DOM code, so no unit test, and not checked in a browser
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -63,3 +65,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 20:14: Name field takes W/A/S/D and arrow keys again (steering keys only outside text fields, `client-modes/keys.js`)
 - 2026-10-24 20:16: Refused joins close their socket, so retrying bots no longer pile up connections on a full server
 - 2026-10-24 21:20: Code review (backlog empty): keyboard steering no longer depends on the browser moving the focus off the hidden name field after Enter
+- 2026-10-24 21:07: Score screen no longer shows zeros when Play is clicked during the login screen's fade-in
