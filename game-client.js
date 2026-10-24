@@ -2,6 +2,7 @@
 var client = require("./client");
 var core = require("./game-core");
 var io = require('socket.io-client');
+var swipeHeading = require("./client-modes/swipe");
 
 var GRID_SIZE = core.GRID_SIZE;
 var CELL_WIDTH = core.CELL_WIDTH;
@@ -122,4 +123,32 @@ $(document).keydown(function(e) {
   
   client.changeHeading(newHeading);
   e.preventDefault();
+});
+
+//Swipe controls for touch screens.
+var touchStart = null;
+document.addEventListener("touchstart", function(e) {
+  if (e.touches.length !== 1)
+    return;
+  touchStart = [e.touches[0].clientX, e.touches[0].clientY];
+}, {passive: true});
+
+document.addEventListener("touchmove", function(e) {
+  if (!touchStart || !$("#begin").hasClass("hidden"))
+    return; //Let the login screen scroll and zoom as usual.
+  e.preventDefault();
+  
+  var x = e.touches[0].clientX, y = e.touches[0].clientY;
+  var newHeading = swipeHeading(x - touchStart[0], y - touchStart[1]);
+  if (newHeading === -1)
+    return;
+  
+  //Start over from here so that the next turn does not need a new touch.
+  touchStart = [x, y];
+  client.changeHeading(newHeading);
+}, {passive: false});
+
+document.addEventListener("touchend", function(e) {
+  if (e.touches.length === 0)
+    touchStart = null;
 });

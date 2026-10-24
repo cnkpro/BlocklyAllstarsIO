@@ -5,6 +5,7 @@ var childProcess = require("child_process");
 var io = require("socket.io-client");
 var core = require("../game-core");
 var GameStats = require("../client-modes/stats");
+var swipeHeading = require("../client-modes/swipe");
 
 var CELL_WIDTH = core.CELL_WIDTH;
 var failures = 0;
@@ -53,6 +54,15 @@ function unitTests() {
       assert.strictEqual(player.posX, 10 * CELL_WIDTH);
       player.move();
       assert.strictEqual(player.posX, 10 * CELL_WIDTH + core.SPEED);
+    });
+  }).then(function() {
+    return check("swipes turn into headings along the longer axis", function() {
+      assert.strictEqual(swipeHeading(10, -5), -1); //Too short.
+      assert.strictEqual(swipeHeading(0, -40), 0);
+      assert.strictEqual(swipeHeading(50, 20), 1);
+      assert.strictEqual(swipeHeading(-10, 31), 2);
+      assert.strictEqual(swipeHeading(-40, 39), 3);
+      assert.strictEqual(swipeHeading(5, 0, 4), 1);
     });
   }).then(function() {
     return check("end-of-game stats keep the best values and the time alive", function() {
