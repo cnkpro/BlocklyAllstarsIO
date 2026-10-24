@@ -14,7 +14,8 @@ when it is done and add a one-line note (date, commit) under "Log".
 - [x] Re-enable client/server frame verification in `client.js` (currently commented out) and resync on mismatch
 - [x] Keep kill count and zoom when the client re-requests a frame (TODO in `client-modes/user-mode.js`)
   - No automated test for the resync path yet (the client socket is private); worth a manual check by forcing a `requestFrame`
-- [ ] Death animation: tail rewinds / player explodes (TODO in `user-mode.js`)
+- [x] Death animation: tail rewinds / player explodes (TODO in `user-mode.js`)
+  - Done as: block bursts into 3x3 pieces and the tail fades out over `ANIMATE_FRAMES`. A real tail "rewind" is still open if wanted; not checked in a browser yet
 - [ ] Server: support more than one game room instead of `games[0]` only
 - [ ] Add unit tests for tail filling (`fillTail` / `floodFill`) and Color
 - [ ] Add an ESLint config and fix warnings (implicit globals like `steps`, `distWeights` in bot-mode.js)
@@ -27,3 +28,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 18:05: Mobile, part 1: swipe controls for touch screens (unit-tested heading logic); UI bar layout on phones still open
 - 2026-10-24 18:07: Frame verification back on: clients check player locations with the server once per second and request a resync on mismatch; server rejects malformed `verify` payloads instead of crashing on null entries
 - 2026-10-24 18:08: Resync keeps kills, zoom, view and land bars, and no longer replays the drop-in animation for the whole map
+- 2026-10-24 18:09: Death animation: dead players explode into pieces and their tail fades (`client-modes/explosion.js`, unit-tested); needs a visual check

@@ -4,6 +4,7 @@ var core = require("../game-core");
 var client = require("../client");
 var Rolling = require("./rolling");
 var GameStats = require("./stats");
+var explosionPieces = require("./explosion");
 
 var GRID_SIZE = core.GRID_SIZE;
 var CELL_WIDTH = core.CELL_WIDTH;
@@ -33,7 +34,7 @@ $(function () {
 
 
 var animateGrid, playerPortion, portionsRolling, 
-  barProportionRolling,  animateTo, offset, user, zoom, showedDead;
+  barProportionRolling,  animateTo, offset, user, zoom, showedDead, dying;
 var grid = client.grid;
 var stats = new GameStats(); //Not cleared by reset(), since frame requests reset the game.
 
@@ -65,6 +66,7 @@ function reset(keepView) {
   playerPortion = [];
   user = null;
   showedDead = false;
+  dying = [];
   if (keepView)
     return;
   
@@ -310,6 +312,8 @@ function paint(ctx)
       p.render(ctx);
   });
   
+  paintDying(ctx);
+  
   //Reset transform to paint fixed UI elements
   ctx.restore();
   paintUIBar(ctx);
@@ -320,6 +324,23 @@ function paint(ctx)
     console.log("You died!");
     //return;
   }
+}
+
+//Dead players: the tail fades out and the block bursts into pieces.
+function paintDying(ctx)
+{
+  dying.forEach(function(d) {
+    var p = d.player;
+    ctx.save();
+    ctx.globalAlpha = 1 - d.frame / ANIMATE_FRAMES;
+    p.tail.renderTail(ctx);
+    ctx.restore();
+    
+    explosionPieces(d.frame, ANIMATE_FRAMES, CELL_WIDTH).forEach(function(piece) {
+      ctx.fillStyle = p.baseColor.deriveAlpha(piece.alpha).rgbString();
+      ctx.fillRect(p.posX + piece.x, p.posY + piece.y, piece.size, piece.size);
+    });
+  });
 }
 
 function paintDoubleBuff()
@@ -359,7 +380,12 @@ function update() {
   if (user && portionsRolling[user.num])
     zoom = 1 / (portionsRolling[user.num].lag + 1); 
   
-  //TODO: animate player is dead. (maybe explosion?), and tail rewinds itself.
+  //Advance death animations.
+  dying = dying.filter(function(d) {
+    d.frame++;
+    return d.frame < ANIMATE_FRAMES;
+  });
+  
   if (user) centerOnPlayer(user, animateTo);
 }
 
@@ -444,6 +470,8 @@ module.exports = exports = {
     });
   },
   removePlayer: function(player) {
+    if (player.dead && client.allowAnimation)
+      dying.push({player: player, frame: 0});
     delete playerPortion[player.num];
     delete portionsRolling[player.num];
     delete barProportionRolling[player.num];

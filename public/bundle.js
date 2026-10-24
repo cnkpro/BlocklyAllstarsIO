@@ -1,4 +1,40 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+//Pieces of a player's block flying apart when it dies.
+//This file does not touch the DOM so that it can be tested under node.
+
+var PIECES = 3; //The block breaks into PIECES x PIECES parts.
+var DISTANCE = 1.5; //How far (in block widths) the outer pieces fly.
+
+//Returns the pieces at the given frame of the animation, relative to the
+//top-left corner of the block: [{x, y, size, alpha}].
+function explosionPieces(frame, totalFrames, width)
+{
+  var t = Math.min(Math.max(frame / totalFrames, 0), 1);
+  var ease = 1 - (1 - t) * (1 - t); //Fast at first, then slowing down.
+  var size = width / PIECES;
+  var pieces = [];
+
+  for (var r = 0; r < PIECES; r++)
+  {
+    for (var c = 0; c < PIECES; c++)
+    {
+      //Direction from the center of the block to the center of this piece.
+      var dirX = (c + .5) / PIECES - .5;
+      var dirY = (r + .5) / PIECES - .5;
+      pieces.push({
+        x: c * size + dirX * DISTANCE * 2 * width * ease,
+        y: r * size + dirY * DISTANCE * 2 * width * ease,
+        size: size * (1 - t * .5),
+        alpha: 1 - t
+      });
+    }
+  }
+  return pieces;
+}
+
+module.exports = explosionPieces;
+
+},{}],2:[function(require,module,exports){
 
 function Rolling(value, frames)
 {
@@ -27,7 +63,7 @@ function Rolling(value, frames)
 module.exports = Rolling;
 
 
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 //Keeps track of the user's score during one game, for the end-of-game screen.
 //This file does not touch the DOM so that it can be tested under node.
 
@@ -107,7 +143,7 @@ GameStats.formatTime = formatTime;
 
 module.exports = GameStats;
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 //Turns a touch swipe into a heading (0 = up, 1 = right, 2 = down, 3 = left).
 //Returns -1 if the finger has not moved far enough yet.
 function swipeHeading(dx, dy, minDist)
@@ -124,13 +160,14 @@ function swipeHeading(dx, dy, minDist)
 
 module.exports = swipeHeading;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 /* global $ */
 
 var core = require("../game-core");
 var client = require("../client");
 var Rolling = require("./rolling");
 var GameStats = require("./stats");
+var explosionPieces = require("./explosion");
 
 var GRID_SIZE = core.GRID_SIZE;
 var CELL_WIDTH = core.CELL_WIDTH;
@@ -160,7 +197,7 @@ $(function () {
 
 
 var animateGrid, playerPortion, portionsRolling, 
-  barProportionRolling,  animateTo, offset, user, zoom, showedDead;
+  barProportionRolling,  animateTo, offset, user, zoom, showedDead, dying;
 var grid = client.grid;
 var stats = new GameStats(); //Not cleared by reset(), since frame requests reset the game.
 
@@ -192,6 +229,7 @@ function reset(keepView) {
   playerPortion = [];
   user = null;
   showedDead = false;
+  dying = [];
   if (keepView)
     return;
   
@@ -437,6 +475,8 @@ function paint(ctx)
       p.render(ctx);
   });
   
+  paintDying(ctx);
+  
   //Reset transform to paint fixed UI elements
   ctx.restore();
   paintUIBar(ctx);
@@ -447,6 +487,23 @@ function paint(ctx)
     console.log("You died!");
     //return;
   }
+}
+
+//Dead players: the tail fades out and the block bursts into pieces.
+function paintDying(ctx)
+{
+  dying.forEach(function(d) {
+    var p = d.player;
+    ctx.save();
+    ctx.globalAlpha = 1 - d.frame / ANIMATE_FRAMES;
+    p.tail.renderTail(ctx);
+    ctx.restore();
+    
+    explosionPieces(d.frame, ANIMATE_FRAMES, CELL_WIDTH).forEach(function(piece) {
+      ctx.fillStyle = p.baseColor.deriveAlpha(piece.alpha).rgbString();
+      ctx.fillRect(p.posX + piece.x, p.posY + piece.y, piece.size, piece.size);
+    });
+  });
 }
 
 function paintDoubleBuff()
@@ -486,7 +543,12 @@ function update() {
   if (user && portionsRolling[user.num])
     zoom = 1 / (portionsRolling[user.num].lag + 1); 
   
-  //TODO: animate player is dead. (maybe explosion?), and tail rewinds itself.
+  //Advance death animations.
+  dying = dying.filter(function(d) {
+    d.frame++;
+    return d.frame < ANIMATE_FRAMES;
+  });
+  
   if (user) centerOnPlayer(user, animateTo);
 }
 
@@ -571,6 +633,8 @@ module.exports = exports = {
     });
   },
   removePlayer: function(player) {
+    if (player.dead && client.allowAnimation)
+      dying.push({player: player, frame: 0});
     delete playerPortion[player.num];
     delete portionsRolling[player.num];
     delete barProportionRolling[player.num];
@@ -602,7 +666,7 @@ module.exports = exports = {
   update: update
 };
 
-},{"../client":5,"../game-core":11,"./rolling":1,"./stats":2}],5:[function(require,module,exports){
+},{"../client":6,"../game-core":12,"./explosion":1,"./rolling":2,"./stats":3}],6:[function(require,module,exports){
 var core = require('./game-core');
 var Player = core.Player;
 
@@ -1003,7 +1067,7 @@ Object.defineProperties(exports, {
   }
 });
 
-},{"./game-core":11,"socket.io-client":39}],6:[function(require,module,exports){
+},{"./game-core":12,"socket.io-client":40}],7:[function(require,module,exports){
 /* global $ */
 var client = require("./client");
 var core = require("./game-core");
@@ -1159,7 +1223,7 @@ document.addEventListener("touchend", function(e) {
     touchStart = null;
 });
 
-},{"./client":5,"./client-modes/swipe":3,"./client-modes/user-mode":4,"./game-core":11,"socket.io-client":39}],7:[function(require,module,exports){
+},{"./client":6,"./client-modes/swipe":4,"./client-modes/user-mode":5,"./game-core":12,"socket.io-client":40}],8:[function(require,module,exports){
 
 
 function Color(h, s, l, a)
@@ -1260,7 +1324,7 @@ function hslToRgb(h, s, l){
 }
 
 module.exports = Color;
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 function constant(val) {
   return {
     value: val,
@@ -1280,7 +1344,7 @@ var consts = {
 
 Object.defineProperties(module.exports, consts);
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var consts = require("./game-consts.js");
 
 var CELL_WIDTH = consts.CELL_WIDTH;
@@ -1420,7 +1484,7 @@ function area(player)
   else
     return Math.abs(player.posX - xDest);
 }
-},{"./game-consts.js":8}],10:[function(require,module,exports){
+},{"./game-consts.js":9}],11:[function(require,module,exports){
 function Grid(size, changeCallback)
 {
   var grid = new Array(size);
@@ -1477,7 +1541,7 @@ function isOutOfBounds(data, row, col)
 }
 
 module.exports = Grid;
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var core = require('./game-core');
 var consts = require('./game-consts');
 
@@ -1496,7 +1560,7 @@ for (var prop in consts) {
 }
 
 
-},{"./color":7,"./game-consts":8,"./game-core":9,"./grid":10,"./player":12}],12:[function(require,module,exports){
+},{"./color":8,"./game-consts":9,"./game-core":10,"./grid":11,"./player":13}],13:[function(require,module,exports){
 var Stack = require("./stack");
 var Color = require("./color");
 var Grid = require("./grid.js");
@@ -2002,7 +2066,7 @@ function move(data)
 
 module.exports = Player;
 
-},{"./color":7,"./game-consts.js":8,"./grid.js":10,"./stack":13}],13:[function(require,module,exports){
+},{"./color":8,"./game-consts.js":9,"./grid.js":11,"./stack":14}],14:[function(require,module,exports){
 
 
 function Stack(initSize)
@@ -2044,7 +2108,7 @@ function Stack(initSize)
 }
 
 module.exports = Stack;
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -2222,7 +2286,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hasCORS = void 0;
@@ -2238,7 +2302,7 @@ catch (err) {
 }
 exports.hasCORS = value;
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 "use strict";
 // imported from https://github.com/galkn/querystring
 /**
@@ -2278,7 +2342,7 @@ function decode(qs) {
     return qry;
 }
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = parse;
@@ -2347,7 +2411,7 @@ function queryKey(uri, query) {
     return data;
 }
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaultBinaryType = exports.globalThisShim = exports.nextTick = void 0;
@@ -2375,7 +2439,7 @@ exports.globalThisShim = (() => {
 exports.defaultBinaryType = "arraybuffer";
 function createCookieJar() { }
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebTransport = exports.WebSocket = exports.NodeWebSocket = exports.XHR = exports.NodeXHR = exports.Fetch = exports.nextTick = exports.parse = exports.installTimerFunctions = exports.transports = exports.TransportError = exports.Transport = exports.protocol = exports.Socket = void 0;
@@ -2406,7 +2470,7 @@ Object.defineProperty(exports, "WebSocket", { enumerable: true, get: function ()
 var webtransport_js_1 = require("./transports/webtransport.js");
 Object.defineProperty(exports, "WebTransport", { enumerable: true, get: function () { return webtransport_js_1.WT; } });
 
-},{"./contrib/parseuri.js":17,"./globals.node.js":18,"./socket.js":20,"./transport.js":21,"./transports/index.js":22,"./transports/polling-fetch.js":23,"./transports/polling-xhr.js":24,"./transports/polling-xhr.node.js":24,"./transports/websocket.js":26,"./transports/websocket.node.js":26,"./transports/webtransport.js":27,"./util.js":28}],20:[function(require,module,exports){
+},{"./contrib/parseuri.js":18,"./globals.node.js":19,"./socket.js":21,"./transport.js":22,"./transports/index.js":23,"./transports/polling-fetch.js":24,"./transports/polling-xhr.js":25,"./transports/polling-xhr.node.js":25,"./transports/websocket.js":27,"./transports/websocket.node.js":27,"./transports/webtransport.js":28,"./util.js":29}],21:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -3106,7 +3170,7 @@ class Socket extends component_emitter_1.Emitter {
 exports.Socket = Socket;
 Socket.protocol = engine_io_parser_1.protocol;
 
-},{"./contrib/parseqs.js":16,"./contrib/parseuri.js":17,"./globals.node.js":18,"./transports/index.js":22,"./util.js":28,"@socket.io/component-emitter":14,"debug":29,"engine.io-parser":36}],21:[function(require,module,exports){
+},{"./contrib/parseqs.js":17,"./contrib/parseuri.js":18,"./globals.node.js":19,"./transports/index.js":23,"./util.js":29,"@socket.io/component-emitter":15,"debug":30,"engine.io-parser":37}],22:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -3261,7 +3325,7 @@ class Transport extends component_emitter_1.Emitter {
 }
 exports.Transport = Transport;
 
-},{"./contrib/parseqs.js":16,"./util.js":28,"@socket.io/component-emitter":14,"debug":29,"engine.io-parser":36}],22:[function(require,module,exports){
+},{"./contrib/parseqs.js":17,"./util.js":29,"@socket.io/component-emitter":15,"debug":30,"engine.io-parser":37}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.transports = void 0;
@@ -3274,7 +3338,7 @@ exports.transports = {
     polling: polling_xhr_node_js_1.XHR,
 };
 
-},{"./polling-xhr.node.js":24,"./websocket.node.js":26,"./webtransport.js":27}],23:[function(require,module,exports){
+},{"./polling-xhr.node.js":25,"./websocket.node.js":27,"./webtransport.js":28}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Fetch = void 0;
@@ -3336,7 +3400,7 @@ class Fetch extends polling_js_1.Polling {
 }
 exports.Fetch = Fetch;
 
-},{"./polling.js":25}],24:[function(require,module,exports){
+},{"./polling.js":26}],25:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -3623,7 +3687,7 @@ function newRequest(opts) {
     }
 }
 
-},{"../contrib/has-cors.js":15,"../globals.node.js":18,"../util.js":28,"./polling.js":25,"@socket.io/component-emitter":14,"debug":29}],25:[function(require,module,exports){
+},{"../contrib/has-cors.js":16,"../globals.node.js":19,"../util.js":29,"./polling.js":26,"@socket.io/component-emitter":15,"debug":30}],26:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -3790,7 +3854,7 @@ class Polling extends transport_js_1.Transport {
 }
 exports.Polling = Polling;
 
-},{"../transport.js":21,"../util.js":28,"debug":29,"engine.io-parser":36}],26:[function(require,module,exports){
+},{"../transport.js":22,"../util.js":29,"debug":30,"engine.io-parser":37}],27:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -3928,7 +3992,7 @@ class WS extends BaseWS {
 }
 exports.WS = WS;
 
-},{"../globals.node.js":18,"../transport.js":21,"../util.js":28,"debug":29,"engine.io-parser":36}],27:[function(require,module,exports){
+},{"../globals.node.js":19,"../transport.js":22,"../util.js":29,"debug":30,"engine.io-parser":37}],28:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -4024,7 +4088,7 @@ class WT extends transport_js_1.Transport {
 }
 exports.WT = WT;
 
-},{"../globals.node.js":18,"../transport.js":21,"debug":29,"engine.io-parser":36}],28:[function(require,module,exports){
+},{"../globals.node.js":19,"../transport.js":22,"debug":30,"engine.io-parser":37}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pick = pick;
@@ -4091,7 +4155,7 @@ function randomString() {
         Math.random().toString(36).substring(2, 5));
 }
 
-},{"./globals.node.js":18}],29:[function(require,module,exports){
+},{"./globals.node.js":19}],30:[function(require,module,exports){
 (function (process){(function (){
 /* eslint-env browser */
 
@@ -4367,7 +4431,7 @@ formatters.j = function (v) {
 };
 
 }).call(this)}).call(this,require('_process'))
-},{"./common":30,"_process":37}],30:[function(require,module,exports){
+},{"./common":31,"_process":38}],31:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -4661,7 +4725,7 @@ function setup(env) {
 
 module.exports = setup;
 
-},{"ms":31}],31:[function(require,module,exports){
+},{"ms":32}],32:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -4825,7 +4889,7 @@ function plural(ms, msAbs, n, name) {
   return Math.round(ms / n) + ' ' + name + (isPlural ? 's' : '');
 }
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ERROR_PACKET = exports.PACKET_TYPES_REVERSE = exports.PACKET_TYPES = void 0;
@@ -4846,7 +4910,7 @@ Object.keys(PACKET_TYPES).forEach((key) => {
 const ERROR_PACKET = { type: "error", data: "parser error" };
 exports.ERROR_PACKET = ERROR_PACKET;
 
-},{}],33:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.decode = exports.encode = void 0;
@@ -4896,7 +4960,7 @@ const decode = (base64) => {
 };
 exports.decode = decode;
 
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.decodePacket = void 0;
@@ -4964,7 +5028,7 @@ const mapBinary = (data, binaryType) => {
     }
 };
 
-},{"./commons.js":32,"./contrib/base64-arraybuffer.js":33}],35:[function(require,module,exports){
+},{"./commons.js":33,"./contrib/base64-arraybuffer.js":34}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.encodePacket = void 0;
@@ -5038,7 +5102,7 @@ function encodePacketToBinary(packet, callback) {
     });
 }
 
-},{"./commons.js":32}],36:[function(require,module,exports){
+},{"./commons.js":33}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.decodePayload = exports.decodePacket = exports.encodePayload = exports.encodePacket = exports.protocol = void 0;
@@ -5204,7 +5268,7 @@ function createPacketDecoderStream(maxPayload, binaryType) {
 }
 exports.protocol = 4;
 
-},{"./commons.js":32,"./decodePacket.js":34,"./encodePacket.js":35}],37:[function(require,module,exports){
+},{"./commons.js":33,"./decodePacket.js":35,"./encodePacket.js":36}],38:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -5390,7 +5454,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],38:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 "use strict";
 /**
  * Initialize backoff timer with `opts`.
@@ -5461,7 +5525,7 @@ Backoff.prototype.setJitter = function (jitter) {
     this.jitter = jitter;
 };
 
-},{}],39:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -5539,7 +5603,7 @@ Object.defineProperty(exports, "WebTransport", { enumerable: true, get: function
 
 module.exports = lookup;
 
-},{"./manager.js":40,"./socket.js":42,"./url.js":43,"debug":44,"engine.io-client":19,"socket.io-parser":48}],40:[function(require,module,exports){
+},{"./manager.js":41,"./socket.js":43,"./url.js":44,"debug":45,"engine.io-client":20,"socket.io-parser":49}],41:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -5967,7 +6031,7 @@ class Manager extends component_emitter_1.Emitter {
 }
 exports.Manager = Manager;
 
-},{"./contrib/backo2.js":38,"./on.js":41,"./socket.js":42,"@socket.io/component-emitter":14,"debug":44,"engine.io-client":19,"socket.io-parser":48}],41:[function(require,module,exports){
+},{"./contrib/backo2.js":39,"./on.js":42,"./socket.js":43,"@socket.io/component-emitter":15,"debug":45,"engine.io-client":20,"socket.io-parser":49}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.on = on;
@@ -5978,7 +6042,7 @@ function on(obj, ev, fn) {
     };
 }
 
-},{}],42:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -6888,7 +6952,7 @@ class Socket extends component_emitter_1.Emitter {
 }
 exports.Socket = Socket;
 
-},{"./on.js":41,"@socket.io/component-emitter":14,"debug":44,"socket.io-parser":48}],43:[function(require,module,exports){
+},{"./on.js":42,"@socket.io/component-emitter":15,"debug":45,"socket.io-parser":49}],44:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -6959,13 +7023,13 @@ function url(uri, path = "", loc) {
     return obj;
 }
 
-},{"debug":44,"engine.io-client":19}],44:[function(require,module,exports){
-arguments[4][29][0].apply(exports,arguments)
-},{"./common":45,"_process":37,"dup":29}],45:[function(require,module,exports){
+},{"debug":45,"engine.io-client":20}],45:[function(require,module,exports){
 arguments[4][30][0].apply(exports,arguments)
-},{"dup":30,"ms":46}],46:[function(require,module,exports){
+},{"./common":46,"_process":38,"dup":30}],46:[function(require,module,exports){
 arguments[4][31][0].apply(exports,arguments)
-},{"dup":31}],47:[function(require,module,exports){
+},{"dup":31,"ms":47}],47:[function(require,module,exports){
+arguments[4][32][0].apply(exports,arguments)
+},{"dup":32}],48:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deconstructPacket = deconstructPacket;
@@ -7057,7 +7121,7 @@ function _reconstructPacket(data, buffers) {
     return data;
 }
 
-},{"./is-binary.js":49}],48:[function(require,module,exports){
+},{"./is-binary.js":50}],49:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -7425,7 +7489,7 @@ function isPacketValid(packet) {
         isDataValid(packet.type, packet.data));
 }
 
-},{"./binary.js":47,"./is-binary.js":49,"@socket.io/component-emitter":14,"debug":50}],49:[function(require,module,exports){
+},{"./binary.js":48,"./is-binary.js":50,"@socket.io/component-emitter":15,"debug":51}],50:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isBinary = isBinary;
@@ -7481,10 +7545,10 @@ function hasBinary(obj, toJSON) {
     return false;
 }
 
-},{}],50:[function(require,module,exports){
-arguments[4][29][0].apply(exports,arguments)
-},{"./common":51,"_process":37,"dup":29}],51:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 arguments[4][30][0].apply(exports,arguments)
-},{"dup":30,"ms":52}],52:[function(require,module,exports){
+},{"./common":52,"_process":38,"dup":30}],52:[function(require,module,exports){
 arguments[4][31][0].apply(exports,arguments)
-},{"dup":31}]},{},[6]);
+},{"dup":31,"ms":53}],53:[function(require,module,exports){
+arguments[4][32][0].apply(exports,arguments)
+},{"dup":32}]},{},[7]);

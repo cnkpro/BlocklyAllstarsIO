@@ -6,6 +6,7 @@ var io = require("socket.io-client");
 var core = require("../game-core");
 var GameStats = require("../client-modes/stats");
 var swipeHeading = require("../client-modes/swipe");
+var explosionPieces = require("../client-modes/explosion");
 
 var CELL_WIDTH = core.CELL_WIDTH;
 var failures = 0;
@@ -63,6 +64,20 @@ function unitTests() {
       assert.strictEqual(swipeHeading(-10, 31), 2);
       assert.strictEqual(swipeHeading(-40, 39), 3);
       assert.strictEqual(swipeHeading(5, 0, 4), 1);
+    });
+  }).then(function() {
+    return check("death explosion starts as the whole block and ends invisible and spread out", function() {
+      var start = explosionPieces(0, 24, CELL_WIDTH);
+      assert.strictEqual(start.length, 9);
+      start.forEach(function(piece) {
+        assert.strictEqual(piece.alpha, 1);
+        assert.ok(piece.x >= 0 && piece.x + piece.size <= CELL_WIDTH + 1e-9);
+        assert.ok(piece.y >= 0 && piece.y + piece.size <= CELL_WIDTH + 1e-9);
+      });
+      var end = explosionPieces(30, 24, CELL_WIDTH); //Clamped to the last frame.
+      end.forEach(function(piece) { assert.strictEqual(piece.alpha, 0); });
+      assert.ok(end[0].x < 0 && end[0].y < 0, "top-left piece flies up-left");
+      assert.ok(end[8].x > CELL_WIDTH && end[8].y > CELL_WIDTH, "bottom-right piece flies down-right");
     });
   }).then(function() {
     return check("end-of-game stats keep the best values and the time alive", function() {
