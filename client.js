@@ -76,8 +76,29 @@ function connectGame(url, name, callback) {
     upgrade: false,
     transports: ['websocket']
   });
+  var answered = false; //Whether callback has been called.
+
+  //Gives up on this game before it started, so that Play works again.
+  function cantJoin(msg) {
+    console.error('Unable to connect to game: ' + msg);
+    running = false;
+    socket.disconnect(); //Don't leave a socket open for every retry.
+    if (!answered)
+    {
+      if (callback)
+        callback(false, msg);
+    }
+    else
+      invokeRenderer('disconnect', []); //Joined already: back to the login screen.
+    answered = true;
+  }
+
   socket.on('connect', function(){
     console.info('Connected to server.');
+  });
+  socket.on('connect_error', function() {
+    if (running && !user)
+      cantJoin('Cannot connect to the server.');
   });
   socket.on('game', function(data) {
     if (timeout != undefined)
@@ -139,7 +160,12 @@ function connectGame(url, name, callback) {
   
   socket.on('disconnect', function(){
     if (!user)
+    {
+      //Lost the server before the game started.
+      if (running)
+        cantJoin('Lost the connection to the server.');
       return;
+    }
     console.info('Server has disconnected. Creating new game.');
     socket.disconnect();
     user.die();
@@ -154,13 +180,15 @@ function connectGame(url, name, callback) {
     type: 0, //Free-for-all
     gameid: -1 //Requested game-id, or -1 for anyone.
   }, function(success, msg) {
-    if (success) 
-      console.info('Connected to game!');
-    else {
-      console.error('Unable to connect to game: ' + msg);
-      running = false;
-      socket.disconnect(); //Don't leave a socket open for every retry.
+    if (answered)
+      return; //Already gave up on this game.
+    if (!success)
+    {
+      cantJoin(msg);
+      return;
     }
+    console.info('Connected to game!');
+    answered = true;
     if (callback)
       callback(success, msg);
   });

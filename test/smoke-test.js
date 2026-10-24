@@ -295,14 +295,37 @@ function unitTests() {
       fake.receive("game", fakeGame(10, 1));
       fake.receive("disconnect");
     });
+  }).then(function() {
+    return check("Play works again when the server can't be reached or drops before the game starts", function() {
+      var answers = [];
+      var fake = connectFakeClient("silent", function(success, msg) { answers.push([success, msg]); });
+      fake.receive("connect_error");
+      assert.deepStrictEqual(answers, [[false, "Cannot connect to the server."]]);
+      assert.strictEqual(fake.connected, false, "stops reconnecting");
+      fake.receive("connect_error"); //Only answered once.
+      assert.strictEqual(answers.length, 1);
+
+      var shown = [];
+      fake = connectFakeClient(false, function(success) { answers.push([success]); });
+      fake.client.renderer = {disconnect: function() { shown.push("login"); }};
+      fake.receive("disconnect"); //Joined, but the game state never came.
+      assert.deepStrictEqual(answers[1], [true]);
+      assert.deepStrictEqual(shown, ["login"], "back to the login screen");
+
+      fake = connectFakeClient(); //Can try again.
+      assert.strictEqual(fake.connected, true);
+      fake.receive("game", fakeGame(10, 1));
+      fake.receive("disconnect");
+    });
   });
 }
 
 //Loads client.js (once) with a fake socket that the test feeds server
-//messages into, and connects it to a new fake game.
+//messages into, and connects it to a new fake game. refuse is true to refuse
+//the join, or "silent" to never answer it.
 var fakeClient = null;
 var nextFakeSocket = null;
-function connectFakeClient(refuse) {
+function connectFakeClient(refuse, callback) {
   var fake = nextFakeSocket = {
     handlers: {},
     connected: true,
@@ -311,7 +334,7 @@ function connectFakeClient(refuse) {
     emit: function(name, data, ack) {
       if (name === "requestFrame" && ++this.requests > 3)
         throw new Error("client keeps requesting frames");
-      if (name === "hello")
+      if (name === "hello" && refuse !== "silent")
         ack(!refuse, refuse ? "All games are full!" : undefined);
     },
     disconnect: function() { this.connected = false; },
@@ -329,7 +352,7 @@ function connectFakeClient(refuse) {
     }
   }
   fakeClient.renderer = null;
-  fakeClient.connectGame("http://fake", "P0");
+  fakeClient.connectGame("http://fake", "P0", callback);
   fake.client = fakeClient;
   return fake;
 }
