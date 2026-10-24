@@ -112,7 +112,62 @@ button:active {
   color: lightgray;
 }
 
+canvas {
+  touch-action: none;
+}
+
+/* On-screen arrows, only on touch screens and only while playing. */
+#dpad {
+  display: none;
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(3, 56px);
+  gap: 4px;
+  opacity: .6;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media (pointer: coarse) {
+  #stats.hidden ~ #begin.hidden ~ #dpad {
+    display: grid;
+  }
+}
+
+#dpad .arrow {
+  padding: 0;
+  font-size: 22px;
+  touch-action: manipulation;
+}
+
+#dpad .up { grid-column: 2; grid-row: 1; }
+#dpad .left { grid-column: 1; grid-row: 2; }
+#dpad .right { grid-column: 3; grid-row: 2; }
+#dpad .down { grid-column: 2; grid-row: 3; }
+
 @media (max-width: 640px) {
+  input, button {
+    font-size: 20px;
+  }
+
+  input {
+    width: 70vw;
+    box-sizing: border-box;
+  }
+
+  #begin button {
+    display: block;
+    margin: .75rem auto 0;
+    min-width: 50vw;
+  }
+
+  #stats table {
+    font-size: 18px;
+    border-spacing: 1rem .25rem;
+  }
+
   #logo {
     font-size: 24px;
   }
@@ -123,4 +178,4 @@ button:active {
     line-height: 30px;
     margin: 0 1px 5px;
   }
-}
+}

@@ -5,6 +5,7 @@ var client = require("../client");
 var Rolling = require("./rolling");
 var GameStats = require("./stats");
 var explosionPieces = require("./explosion");
+var hudLayout = require("./hud-layout");
 
 var GRID_SIZE = core.GRID_SIZE;
 var CELL_WIDTH = core.CELL_WIDTH;
@@ -15,9 +16,8 @@ var ANIMATE_FRAMES = core.ANIMATE_FRAMES;
 var BOUNCE_FRAMES = [8, 4];
 var DROP_HEIGHT = 24;
 var DROP_SPEED = 2;
-var MIN_BAR_WIDTH = 65;
+var MIN_BAR_WIDTH = hudLayout.MIN_BAR_WIDTH;
 var BAR_HEIGHT = SHADOW_OFFSET + CELL_WIDTH;
-var BAR_WIDTH = 400;
 
 var canvas, canvasWidth, canvasHeight, gameWidth, gameHeight, ctx, offctx, offscreenCanvas;
 
@@ -201,18 +201,23 @@ function paintUIBar(ctx)
   ctx.fillStyle = "#24422c";
   ctx.fillRect(0, 0, canvasWidth, BAR_HEIGHT);
   
-  var barOffset;
+  var layout = hudLayout(canvasWidth);
+  var barWidth = layout.barWidth;
+  var barOffset = 0;
   ctx.fillStyle = "white";
-  ctx.font = "24px Changa";
-  barOffset = (user && user.name) ? (ctx.measureText(user.name).width + 20) : 0;
-  ctx.fillText(user ? user.name : "", 5, CELL_WIDTH - 5);
-  
+  if (!layout.compact) //No room for the name on narrow screens.
+  {
+    ctx.font = layout.nameFont + "px Changa";
+    barOffset = (user && user.name) ? (ctx.measureText(user.name).width + 20) : 0;
+    ctx.fillText(user ? user.name : "", 5, CELL_WIDTH - 5);
+  }
+
   //Draw filled bar.
   ctx.fillStyle = "rgba(180, 180, 180, .3)";
-  ctx.fillRect(barOffset, 0, BAR_WIDTH, BAR_HEIGHT);
-  
+  ctx.fillRect(barOffset, 0, barWidth, BAR_HEIGHT);
+
   var userPortions = (user && portionsRolling[user.num]) ? portionsRolling[user.num].lag : 0;
-  var barSize = Math.ceil((BAR_WIDTH - MIN_BAR_WIDTH) * userPortions + MIN_BAR_WIDTH);
+  var barSize = Math.ceil((barWidth - MIN_BAR_WIDTH) * userPortions + MIN_BAR_WIDTH);
   ctx.fillStyle = user ? user.baseColor.rgbString() : "";
   ctx.fillRect(barOffset, 0, barSize, CELL_WIDTH);
   ctx.fillStyle = user ? user.shadowColor.rgbString() : "";
@@ -220,12 +225,12 @@ function paintUIBar(ctx)
   
   //Percentage
   ctx.fillStyle = "white";
-  ctx.font = "18px Changa";
+  ctx.font = layout.font + "px Changa";
   ctx.fillText((userPortions * 100).toFixed(3) + "%", 5 + barOffset, CELL_WIDTH - 5);
   
   //Number of kills
   var killsText = "Kills: " + client.kills;
-  var killsOffset = 20 + BAR_WIDTH + barOffset;
+  var killsOffset = 20 + barWidth + barOffset;
   ctx.fillText(killsText, killsOffset, CELL_WIDTH - 5);
   
   //Calcuate rank
@@ -256,15 +261,15 @@ function paintUIBar(ctx)
   }
   
   //Show leaderboard.
-  var leaderboardNum = Math.min(5, sorted.length);
+  var leaderboardNum = Math.min(layout.leaderCount, sorted.length);
   for (var i = 0; i < leaderboardNum; i++)
   {
     var player = sorted[i].player;
     var name = player.name || "Unnamed";
     var portion = barProportionRolling[player.num].lag;
-    
+
     var nameWidth = ctx.measureText(name).width;
-    barSize = Math.ceil((BAR_WIDTH - MIN_BAR_WIDTH) * portion + MIN_BAR_WIDTH);
+    barSize = Math.ceil((layout.leaderWidth - MIN_BAR_WIDTH) * portion + MIN_BAR_WIDTH);
     var barX = canvasWidth - barSize;
     var barY = BAR_HEIGHT * (i + 1);
     var offset = i == 0 ? 10 : 0;

@@ -7,6 +7,7 @@ var core = require("../game-core");
 var Game = require("../game-server");
 var GameStats = require("../client-modes/stats");
 var swipeHeading = require("../client-modes/swipe");
+var hudLayout = require("../client-modes/hud-layout");
 var explosionPieces = require("../client-modes/explosion");
 
 var CELL_WIDTH = core.CELL_WIDTH;
@@ -65,6 +66,23 @@ function unitTests() {
       assert.strictEqual(swipeHeading(-10, 31), 2);
       assert.strictEqual(swipeHeading(-40, 39), 3);
       assert.strictEqual(swipeHeading(5, 0, 4), 1);
+    });
+  }).then(function() {
+    return check("UI bars shrink to fit narrow screens", function() {
+      var wide = hudLayout(1280);
+      assert.strictEqual(wide.compact, false);
+      assert.strictEqual(wide.barWidth, 400);
+      assert.strictEqual(wide.leaderCount, 5);
+
+      [320, 360, 414, 639].forEach(function(width) {
+        var narrow = hudLayout(width);
+        assert.strictEqual(narrow.compact, true);
+        assert.ok(narrow.barWidth > hudLayout.MIN_BAR_WIDTH);
+        assert.ok(narrow.leaderWidth > hudLayout.MIN_BAR_WIDTH);
+        //Land bar plus kills and rank text (~160px at 14px) fit on one line.
+        assert.ok(narrow.barWidth + 160 <= width, "top bar overflows at " + width);
+        assert.ok(narrow.leaderWidth <= width / 2, "leaderboard too wide at " + width);
+      });
     });
   }).then(function() {
     return check("death explosion starts as the whole block and ends invisible and spread out", function() {

@@ -87,7 +87,7 @@ $(function() {
       if (evt.which === 13)
         requestAnimationFrame(run);
     });
-    $("button").click(function(evt) {
+    $("#begin button").click(function(evt) {
       requestAnimationFrame(run);
     });
   });
@@ -121,10 +121,18 @@ $(document).keydown(function(e) {
   e.preventDefault();
 });
 
+//On-screen arrows (only shown on touch screens, see styles.css).
+$(function() {
+  $("#dpad .arrow").on("touchstart mousedown", function(e) {
+    e.preventDefault(); //No double-tap zoom, no focus on the button.
+    client.changeHeading(+$(this).data("heading"));
+  });
+});
+
 //Swipe controls for touch screens.
 var touchStart = null;
 document.addEventListener("touchstart", function(e) {
-  if (e.touches.length !== 1)
+  if (e.touches.length !== 1 || $(e.target).closest("#dpad").length)
     return;
   touchStart = [e.touches[0].clientX, e.touches[0].clientY];
 }, {passive: true});
