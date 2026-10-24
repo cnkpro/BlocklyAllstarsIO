@@ -46,6 +46,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed in `updateFrame` (game-core, so server and clients agree): players without any land are out, like in paper.io. The enclosing player gets no kill for it; decide whether it should count as a kill
 - [x] Death animations were cut off when the client resynced: `reset` cleared them even when keeping the view (found in code review)
   - Fixed: a resync keeps running death animations. DOM-side, no unit test; not checked in a browser (needs a resync during a death)
+- [x] `npm test` could hang forever: the server tests waited a fixed 1s for the server to start, and on a slow (cold) start the socket's `hello` ack never came back; the spawned server then kept the test process alive (found when the 23:00 run's first `npm test` never finished)
+  - Fixed: the test waits for the server's "listening" line (fails after 15s), a 120s watchdog fails the run instead of hanging, and spawned server/bot processes are killed when the test exits
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -75,3 +77,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 21:12: Play works again after a failed or dropped connection (`cantJoin` in `client.js`)
 - 2026-10-24 22:10: Code review (backlog empty): players whose land is all enclosed by another player are now out instead of wandering with no land (unit-tested); server code otherwise checked (joins, verify, ticker, spawn spots) without new findings
 - 2026-10-24 22:14: Death animations keep playing through a resync
+- 2026-10-24 23:15: Code review (backlog empty): `npm test` no longer hangs when the server starts slowly; it waits for the server to listen, has a watchdog, and cleans up its child processes

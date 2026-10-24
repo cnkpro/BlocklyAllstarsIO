@@ -420,6 +420,36 @@ function wait(ms) {
   return new Promise(function(resolve) { setTimeout(resolve, ms); });
 }
 
+//Child processes still running when the tests end (or hang).
+var children = [];
+process.on("exit", function() {
+  children.forEach(function(child) {
+    if (child.exitCode === null)
+      child.kill();
+  });
+});
+
+//Resolves once the server prints that it is listening, so a slow start
+//doesn't leave the socket tests waiting forever for an ack.
+function waitForServer(server, getOutput, ms) {
+  return new Promise(function(resolve, reject) {
+    var timer = setTimeout(function() {
+      reject(new Error("server did not start within " + ms + "ms:\n" + getOutput()));
+    }, ms);
+    server.stdout.on("data", function() {
+      if (/listening on/.test(getOutput()))
+      {
+        clearTimeout(timer);
+        resolve();
+      }
+    });
+    server.on("exit", function() {
+      clearTimeout(timer);
+      reject(new Error("server exited on start:\n" + getOutput()));
+    });
+  });
+}
+
 function serverTests() {
   var port = 3900 + Math.floor(Math.random() * 100);
   var url = "http://127.0.0.1:" + port;
@@ -428,9 +458,25 @@ function serverTests() {
   var server = childProcess.spawn(process.execPath, ["server.js", "127.0.0.1", "" + port], {cwd: root});
   server.stdout.on("data", function(d) { output += d; });
   server.stderr.on("data", function(d) { output += d; });
+  children.push(server);
   var bots = [];
+  var started = false;
 
-  return wait(1000).then(function() {
+  return check("server starts", function() {
+    return waitForServer(server, function() { return output; }, 15000).then(function() {
+      started = true;
+    });
+  }).then(function() {
+    if (started)
+      return runServerTests(server, url, root, bots, function() { return output; });
+  }).then(function() {
+    bots.forEach(function(bot) { bot.kill(); });
+    server.kill();
+  });
+}
+
+function runServerTests(server, url, root, bots, getOutput) {
+  return Promise.resolve().then(function() {
     return check("static page and game socket share one port", function() {
       return new Promise(function(resolve, reject) {
         require("http").get(url + "/", function(res) {
@@ -476,7 +522,7 @@ function serverTests() {
         s.disconnect();
         return wait(200);
       }).then(function() {
-        assert.strictEqual(server.exitCode, null, "server exited:\n" + output);
+        assert.strictEqual(server.exitCode, null, "server exited:\n" + getOutput());
       });
     });
   }).then(function() {
@@ -488,9 +534,10 @@ function serverTests() {
         bot.stdout.on("data", function(d) { bot.log += d; });
         bot.stderr.on("data", function(d) { bot.log += d; });
         bots.push(bot);
+        children.push(bot);
       });
       return wait(8000).then(function() {
-        assert.strictEqual(server.exitCode, null, "server exited:\n" + output);
+        assert.strictEqual(server.exitCode, null, "server exited:\n" + getOutput());
         bots.forEach(function(bot) {
           assert.strictEqual(bot.exitCode, null, "bot exited:\n" + bot.log);
           assert.ok(/Connected to game!/.test(bot.log), "bot never joined:\n" + bot.log);
@@ -498,11 +545,14 @@ function serverTests() {
         });
       });
     });
-  }).then(function() {
-    bots.forEach(function(bot) { bot.kill(); });
-    server.kill();
   });
 }
+
+//Fail instead of hanging forever (e.g. an ack that never comes back).
+setTimeout(function() {
+  console.log("FAIL - tests did not finish within 120s");
+  process.exit(1);
+}, 120000);
 
 unitTests().then(serverTests).then(function() {
   console.log(failures ? failures + " test(s) failed" : "all tests passed");
