@@ -42,6 +42,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed: stats are cleared when a new game loads (renderer `reset`, not on a resync); DOM code, so no unit test, and not checked in a browser
 - [x] Play silently did nothing after the server was unreachable or dropped before the game loaded: `connectGame` only reset its `running` flag on a refused join or after a game, so a page reload was needed (found in code review)
   - Fixed: connection errors and early disconnects end the attempt with an error message (or go back to the login screen if the join was already accepted); bots now retry instead of waiting on a dead socket. Tested with the fake socket
+- [x] A player whose whole territory was enclosed by someone else stayed alive with no land: they could never fill their tail again and just wandered until they hit a wall or got cut (found in code review)
+  - Fixed in `updateFrame` (game-core, so server and clients agree): players without any land are out, like in paper.io. The enclosing player gets no kill for it; decide whether it should count as a kill
 
 ## Log
 - 2026-10-24: Revived project, fixed crashes and gameplay bugs, upgraded socket.io to v4, added `npm test` (6a3abca)
@@ -69,3 +71,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 21:20: Code review (backlog empty): keyboard steering no longer depends on the browser moving the focus off the hidden name field after Enter
 - 2026-10-24 21:07: Score screen no longer shows zeros when Play is clicked during the login screen's fade-in
 - 2026-10-24 21:12: Play works again after a failed or dropped connection (`cantJoin` in `client.js`)
+- 2026-10-24 22:10: Code review (backlog empty): players whose land is all enclosed by another player are now out instead of wandering with no land (unit-tested); server code otherwise checked (joins, verify, ticker, spawn spots) without new findings

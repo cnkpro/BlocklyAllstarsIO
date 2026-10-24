@@ -208,6 +208,37 @@ function unitTests() {
       assert.strictEqual(player.tail.moves.length, 0, "tail is cleared");
     });
   }).then(function() {
+    return check("a player whose land is all enclosed by another player is out", function() {
+      var grid = new core.Grid(core.GRID_SIZE);
+      var player = makePlayer(grid, 0, 10, 10, 1); //Owns rows 9-11, cols 9-11.
+      core.initPlayer(grid, player);
+      var players = [player];
+      var dead = [];
+
+      function walk(heading, n) {
+        player.heading = heading;
+        for (var i = 0; i < n * CELL_WIDTH / core.SPEED; i++)
+          core.updateFrame(grid, players, dead);
+      }
+      walk(1, 6); //Right to col 16.
+      walk(0, 6); //Up to row 4.
+      walk(3, 6); //Left to col 10.
+      walk(2, 3); //Down to row 7. (Moving into row 8 already counts as home.)
+
+      //Still waiting to move (NEW_PLAYER_LAG), owns rows 5-7, cols 12-14.
+      var enclosed = new core.Player(grid, {num: 1, posX: 13 * CELL_WIDTH, posY: 6 * CELL_WIDTH, currentHeading: 0});
+      core.initPlayer(grid, enclosed);
+      players.push(enclosed);
+      core.updateFrame(grid, players, dead);
+      assert.strictEqual(players.length, 2, "a player with land stays in");
+
+      walk(2, 2); //Home: the loop closes around the other player's land.
+      assert.deepStrictEqual(players.map(function(p) { return p.num; }), [0]);
+      assert.deepStrictEqual(dead.map(function(p) { return p.num; }), [1]);
+      assert.ok(enclosed.dead);
+      assert.strictEqual(grid.get(6, 13), player);
+    });
+  }).then(function() {
     return check("Color converts HSL to rgba and clamps derived colors", function() {
       var red = new core.Color(0, 1, .5, 1);
       assert.strictEqual(red.rgbString(), "rgba(255, 0, 0, 1)");

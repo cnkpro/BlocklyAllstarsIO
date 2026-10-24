@@ -94,6 +94,22 @@ exports.updateFrame = function(grid, players, dead, notifyKill)
     }
   }
   
+  //Players whose land was all taken (enclosed by someone else) can never
+  //fill their tail again, so they are out.
+  var hasLand = [];
+  for (var r = 0; r < grid.size; r++)
+    for (var c = 0; c < grid.size; c++)
+    {
+      var owner = grid.get(r, c);
+      if (owner)
+        hasLand[owner.num] = true;
+    }
+  for (var i = 0; i < players.length; i++)
+  {
+    if (!hasLand[players[i].num])
+      removing[i] = true;
+  }
+
   //removing[] is indexed by the original players array, so filter that.
   var tmp = players.filter(function(val, i) {
     if (val.dead || removing[i])
