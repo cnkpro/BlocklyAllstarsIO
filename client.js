@@ -14,6 +14,7 @@ var kills;
 var timeout = undefined;
 var dirty = false;
 var deadFrames = 0;
+var deathLoop = false; //Whether the frames after our death are running.
 var requesting = -1; //frame that we are requesting at.
 var frameCache = []; //Frames after our request.
 
@@ -67,6 +68,7 @@ function connectGame(url, name, callback) {
   
   user = null;
   deadFrames = 0;
+  deathLoop = false;
   
   //Socket connection.
   io.j = [];
@@ -343,8 +345,8 @@ function verifyFrame()
 
 function paintLoop()
 {
-  if (!dirty)
-    return;
+  if (!dirty || deathLoop)
+    return; //After our death, deathFrame paints by itself.
   invokeRenderer('paint', []);
   dirty = false;
   
@@ -352,24 +354,43 @@ function paintLoop()
   {
     if (timeout)
       clearTimeout(timeout);
-    if (deadFrames === 60) //One second of frame
-    {
-      var before =allowAnimation;
-      allowAnimation = false;
-      update();
-      invokeRenderer('paint', []);
-      allowAnimation = before;
-      user = null;
-      deadFrames = 0;
-      return;
-    }
-    
+    //Set first: disconnecting calls the disconnect handler right away,
+    //which calls paintLoop again. Two loops would run the death animation
+    //at double speed.
+    deathLoop = true;
     socket.disconnect();
-    deadFrames++;
-    dirty = true;
-    update();
-    requestAnimationFrame(paintLoop);
+    deathFrame();
   }
+}
+
+//Plays on for a second after our death, one frame per animation frame, so
+//that the death animation can be seen.
+function deathFrame()
+{
+  if (!user || !user.dead)
+    return; //A new game has started.
+  if (deadFrames === 60) //One second of frame
+  {
+    var before =allowAnimation;
+    allowAnimation = false;
+    update();
+    invokeRenderer('paint', []);
+    allowAnimation = before;
+    user = null;
+    deadFrames = 0;
+    deathLoop = false;
+    return;
+  }
+  
+  deadFrames++;
+  update();
+  var me = user;
+  requestAnimationFrame(function() {
+    if (user !== me)
+      return; //A new game has started.
+    invokeRenderer('paint', []);
+    deathFrame();
+  });
 }
 
 //keepStats is true when we only reload the game state to resync with the server.

@@ -50,7 +50,8 @@ when it is done and add a one-line note (date, commit) under "Log".
   - Fixed: the test waits for the server's "listening" line (fails after 15s), a 120s watchdog fails the run instead of hanging, and spawned server/bot processes are killed when the test exits
 - [x] Score screen is only fully visible for an instant: it fades in over 3s and then the login screen immediately fades in on top of it, so both overlap (found in a browser play-test). Hold the score screen (e.g. ~4s, or until a click/key) before fading in the login screen, without the overlap
   - Fixed: score screen fades in (1s), stays for 4s or until a click, key or tap (`client-modes/hold.js`, unit-tested), fades out, then the login screen fades in. Not checked in a browser (preview server declined)
-- [ ] Death animation is cut short: in a browser the 3x3 burst shows at the moment of death, but the pieces and the tail are gone within 250 ms instead of fading out over the animation (found in a browser play-test)
+- [x] Death animation is cut short: in a browser the 3x3 burst shows at the moment of death, but the pieces and the tail are gone within 250 ms instead of fading out over the animation (found in a browser play-test)
+  - Cause: after our own death two paint loops ran (`socket.disconnect()` calls the disconnect handler right away, which started a second loop), so the second of play after death ran at double speed. Fixed with one `deathFrame` loop in `client.js` (fake-socket test checks the speed); the animation now also has its own length (`DEATH_FRAMES` = 48, 0.8s). Not checked in a browser (preview server declined)
 - [ ] Login screen: the blue GitHub link is hard to read on black; the player name on the score screen is very small (found in a browser play-test)
 - [ ] Phone layout: the arrow pad covers the bottom-right of the play area, so you can't see what's coming when heading down/right; consider making it smaller or semi-transparent (found in a browser play-test)
 
@@ -84,3 +85,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 22:14: Death animations keep playing through a resync
 - 2026-10-24 23:15: Code review (backlog empty): `npm test` no longer hangs when the server starts slowly; it waits for the server to listen, has a watchdog, and cleans up its child processes
 - 2026-10-25 00:05: Score screen is held for 4s (or until a click/key/tap) and fades out before the login screen fades in, so they no longer overlap
+- 2026-10-25 00:09: Death animation no longer cut short: the frames after our death ran twice per animation frame; one loop now, and the burst/tail fade lasts 0.8s

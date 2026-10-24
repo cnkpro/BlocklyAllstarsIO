@@ -14,6 +14,7 @@ var SPEED = core.SPEED;
 var BORDER_WIDTH = core.BORDER_WIDTH;
 var SHADOW_OFFSET = 5;
 var ANIMATE_FRAMES = core.ANIMATE_FRAMES;
+var DEATH_FRAMES = 48; //Fits in the second the client plays on after our death.
 var BOUNCE_FRAMES = [8, 4];
 var DROP_HEIGHT = 24;
 var DROP_SPEED = 2;
@@ -343,11 +344,11 @@ function paintDying(ctx)
   dying.forEach(function(d) {
     var p = d.player;
     ctx.save();
-    ctx.globalAlpha = 1 - d.frame / ANIMATE_FRAMES;
+    ctx.globalAlpha = 1 - d.frame / DEATH_FRAMES;
     p.tail.renderTail(ctx);
     ctx.restore();
     
-    explosionPieces(d.frame, ANIMATE_FRAMES, CELL_WIDTH).forEach(function(piece) {
+    explosionPieces(d.frame, DEATH_FRAMES, CELL_WIDTH).forEach(function(piece) {
       ctx.fillStyle = p.baseColor.deriveAlpha(piece.alpha).rgbString();
       ctx.fillRect(p.posX + piece.x, p.posY + piece.y, piece.size, piece.size);
     });
@@ -394,7 +395,7 @@ function update() {
   //Advance death animations.
   dying = dying.filter(function(d) {
     d.frame++;
-    return d.frame < ANIMATE_FRAMES;
+    return d.frame < DEATH_FRAMES;
   });
   
   if (user) centerOnPlayer(user, animateTo);

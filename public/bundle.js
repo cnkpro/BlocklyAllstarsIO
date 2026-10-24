@@ -272,6 +272,7 @@ var SPEED = core.SPEED;
 var BORDER_WIDTH = core.BORDER_WIDTH;
 var SHADOW_OFFSET = 5;
 var ANIMATE_FRAMES = core.ANIMATE_FRAMES;
+var DEATH_FRAMES = 48; //Fits in the second the client plays on after our death.
 var BOUNCE_FRAMES = [8, 4];
 var DROP_HEIGHT = 24;
 var DROP_SPEED = 2;
@@ -601,11 +602,11 @@ function paintDying(ctx)
   dying.forEach(function(d) {
     var p = d.player;
     ctx.save();
-    ctx.globalAlpha = 1 - d.frame / ANIMATE_FRAMES;
+    ctx.globalAlpha = 1 - d.frame / DEATH_FRAMES;
     p.tail.renderTail(ctx);
     ctx.restore();
     
-    explosionPieces(d.frame, ANIMATE_FRAMES, CELL_WIDTH).forEach(function(piece) {
+    explosionPieces(d.frame, DEATH_FRAMES, CELL_WIDTH).forEach(function(piece) {
       ctx.fillStyle = p.baseColor.deriveAlpha(piece.alpha).rgbString();
       ctx.fillRect(p.posX + piece.x, p.posY + piece.y, piece.size, piece.size);
     });
@@ -652,7 +653,7 @@ function update() {
   //Advance death animations.
   dying = dying.filter(function(d) {
     d.frame++;
-    return d.frame < ANIMATE_FRAMES;
+    return d.frame < DEATH_FRAMES;
   });
   
   if (user) centerOnPlayer(user, animateTo);
@@ -805,6 +806,7 @@ var kills;
 var timeout = undefined;
 var dirty = false;
 var deadFrames = 0;
+var deathLoop = false; //Whether the frames after our death are running.
 var requesting = -1; //frame that we are requesting at.
 var frameCache = []; //Frames after our request.
 
@@ -858,6 +860,7 @@ function connectGame(url, name, callback) {
   
   user = null;
   deadFrames = 0;
+  deathLoop = false;
   
   //Socket connection.
   io.j = [];
@@ -1134,8 +1137,8 @@ function verifyFrame()
 
 function paintLoop()
 {
-  if (!dirty)
-    return;
+  if (!dirty || deathLoop)
+    return; //After our death, deathFrame paints by itself.
   invokeRenderer('paint', []);
   dirty = false;
   
@@ -1143,24 +1146,43 @@ function paintLoop()
   {
     if (timeout)
       clearTimeout(timeout);
-    if (deadFrames === 60) //One second of frame
-    {
-      var before =allowAnimation;
-      allowAnimation = false;
-      update();
-      invokeRenderer('paint', []);
-      allowAnimation = before;
-      user = null;
-      deadFrames = 0;
-      return;
-    }
-    
+    //Set first: disconnecting calls the disconnect handler right away,
+    //which calls paintLoop again. Two loops would run the death animation
+    //at double speed.
+    deathLoop = true;
     socket.disconnect();
-    deadFrames++;
-    dirty = true;
-    update();
-    requestAnimationFrame(paintLoop);
+    deathFrame();
   }
+}
+
+//Plays on for a second after our death, one frame per animation frame, so
+//that the death animation can be seen.
+function deathFrame()
+{
+  if (!user || !user.dead)
+    return; //A new game has started.
+  if (deadFrames === 60) //One second of frame
+  {
+    var before =allowAnimation;
+    allowAnimation = false;
+    update();
+    invokeRenderer('paint', []);
+    allowAnimation = before;
+    user = null;
+    deadFrames = 0;
+    deathLoop = false;
+    return;
+  }
+  
+  deadFrames++;
+  update();
+  var me = user;
+  requestAnimationFrame(function() {
+    if (user !== me)
+      return; //A new game has started.
+    invokeRenderer('paint', []);
+    deathFrame();
+  });
 }
 
 //keepStats is true when we only reload the game state to resync with the server.

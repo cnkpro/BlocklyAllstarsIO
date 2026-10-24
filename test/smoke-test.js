@@ -341,6 +341,45 @@ function unitTests() {
       fake.receive("disconnect");
     });
   }).then(function() {
+    return check("after our death the game plays on for a second at normal speed", function() {
+      var fake = connectFakeClient();
+      fake.syncDisconnect = true;
+      var updates = 0, shown = 0;
+      fake.client.renderer = {
+        update: function() { updates++; },
+        disconnect: function() { shown++; }
+      };
+      fake.receive("game", fakeGame(10, 2));
+      var died = fakeNotify(11, 2);
+      died.moves[0].left = true;
+      var start = Date.now();
+      fake.receive("notifyFrame", died);
+      updates = 0;
+      
+      //60 frames of ~16.7ms; they ran twice as fast with two loops.
+      return wait(500).then(function() {
+        var elapsed = Date.now() - start;
+        assert.ok(updates <= elapsed / (1000 / 60) + 3,
+          updates + " updates in " + elapsed + "ms");
+        assert.strictEqual(shown, 1, "score screen shown once");
+        return new Promise(function(resolve, reject) {
+          var last = -1;
+          var poll = setInterval(function() {
+            if (updates === last)
+            {
+              clearInterval(poll);
+              try {
+                assert.strictEqual(updates, 61, "60 frames plus the last one");
+                assert.ok(Date.now() - start >= 900, "lasts about a second");
+                resolve();
+              } catch (e) { reject(e); }
+            }
+            last = updates;
+          }, 200);
+        });
+      });
+    });
+  }).then(function() {
     return check("client closes its socket when the server refuses to let it join", function() {
       var fake = connectFakeClient(true);
       assert.strictEqual(fake.connected, false);
@@ -391,7 +430,13 @@ function connectFakeClient(refuse, callback) {
       if (name === "hello" && refuse !== "silent")
         ack(!refuse, refuse ? "All games are full!" : undefined);
     },
-    disconnect: function() { this.connected = false; },
+    disconnect: function() {
+      var was = this.connected;
+      this.connected = false;
+      //Like socket.io, which calls the handler right away.
+      if (was && this.syncDisconnect)
+        this.handlers.disconnect("io client disconnect");
+    },
     receive: function(name, data) { this.handlers[name](data); }
   };
   if (!fakeClient)
