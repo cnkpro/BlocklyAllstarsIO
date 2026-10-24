@@ -59,6 +59,7 @@ function tick() {
   games.forEach(function(game) {
     game.tickFrame();
   });
+  Game.closeEmpty(games);
   setTimeout(tick, 1000 / 60);
 }
 tick();

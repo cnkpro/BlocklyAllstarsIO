@@ -50,7 +50,11 @@ function Game(id)
   });
   
   this.id = id;
-  
+
+  this.playerCount = function() {
+    return players.length;
+  };
+
   this.addPlayer = function(client, name) {
     if (players.length >= MAX_PLAYERS)
       return false;
@@ -274,20 +278,48 @@ function Game(id)
 //Returns the game the client joined, or null.
 Game.join = function(games, client, name, gameid, maxGames)
 {
-  if (checkInt(gameid, 0, games.length) && games[gameid].addPlayer(client, name))
-    return games[gameid];
-  
+  var requested = null;
   for (var i = 0; i < games.length; i++)
   {
-    if (i !== gameid && games[i].addPlayer(client, name))
+    if (games[i].id === gameid)
+      requested = games[i];
+  }
+  if (requested && requested.addPlayer(client, name))
+    return requested;
+
+  for (var i = 0; i < games.length; i++)
+  {
+    if (games[i] !== requested && games[i].addPlayer(client, name))
       return games[i];
   }
-  
+
   if (games.length >= maxGames)
     return null;
-  var game = new Game(games.length);
+
+  //Reuse the lowest free id, since empty games get closed.
+  var id = 0;
+  while (games.some(function(game) { return game.id === id; }))
+    id++;
+  var game = new Game(id);
   games.push(game);
   return game.addPlayer(client, name) ? game : null;
+};
+
+//Closes the games nobody plays in any more, except the first one so that
+//there is always a game to join. Returns the number of games closed.
+Game.closeEmpty = function(games)
+{
+  var closed = 0;
+  for (var i = games.length - 1; i > 0; i--)
+  {
+    if (games[i].playerCount() === 0)
+    {
+      log("Closed game " + games[i].id + ".");
+      games.splice(i, 1);
+      closed++;
+    }
+  }
+  return closed;
 };
 
 function checkInt(value, min, max)

@@ -100,16 +100,28 @@ function unitTests() {
     });
   }).then(function() {
     return check("players go to the requested game, then any game with room, then a new game", function() {
-      function fakeGame(room) {
-        return {addPlayer: function() { return room-- > 0; }};
+      function fakeGame(id, room) {
+        return {id: id, addPlayer: function() { return room-- > 0; }};
       }
       var fakeClient = {on: function() {}, emit: function() {}};
-      var games = [fakeGame(1), fakeGame(1)];
+      var games = [fakeGame(0, 1), fakeGame(1, 1)];
       assert.strictEqual(Game.join(games, fakeClient, "a", 1, 3), games[1]);
       assert.strictEqual(Game.join(games, fakeClient, "b", 1, 3), games[0], "falls back to another game");
       assert.strictEqual(Game.join(games, fakeClient, "BOT c", "x", 3).id, 2, "opens a new game");
       assert.strictEqual(games.length, 3);
-      assert.strictEqual(Game.join([fakeGame(0)], fakeClient, "d", -1, 1), null, "no room and no new games");
+      assert.strictEqual(Game.join([fakeGame(0, 0)], fakeClient, "d", -1, 1), null, "no room and no new games");
+
+      games = [fakeGame(0, 0), fakeGame(2, 0)];
+      assert.strictEqual(Game.join(games, fakeClient, "BOT e", 2, 3).id, 1, "reuses the id of a closed game");
+    });
+  }).then(function() {
+    return check("empty games are closed, except the first one", function() {
+      var fakeClient = {on: function() {}, emit: function() {}};
+      var games = [new Game(0), new Game(1), new Game(2)];
+      assert.ok(games[1].addPlayer(fakeClient, "BOT a"));
+      assert.strictEqual(Game.closeEmpty(games), 1);
+      assert.deepStrictEqual(games.map(function(game) { return game.id; }), [0, 1]);
+      assert.strictEqual(Game.closeEmpty(games), 0, "first game stays open and the busy one too");
     });
   }).then(function() {
     return check("closing a loop fills the tail and the area it encloses", function() {

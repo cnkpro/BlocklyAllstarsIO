@@ -18,7 +18,7 @@ when it is done and add a one-line note (date, commit) under "Log".
 - [x] Death animation: tail rewinds / player explodes (TODO in `user-mode.js`)
   - Done as: block bursts into 3x3 pieces and the tail fades out over `ANIMATE_FRAMES`. A real tail "rewind" is still open if wanted; not checked in a browser yet
 - [x] Server: support more than one game room instead of `games[0]` only
-  - Rooms are never closed once opened (max 8, `MAX_GAMES` in `server.js`); empty extra rooms keep ticking. Could close empty rooms or show the room number in the client later
+  - Empty rooms other than the first are closed after each tick (`Game.closeEmpty`); ids of closed rooms are reused. Still open: show the room number in the client (`TODO` in `client.js`)
 - [x] Add unit tests for tail filling (`fillTail` / `floodFill`) and Color
 - [x] Add an ESLint config and fix warnings (implicit globals like `steps`, `distWeights` in bot-mode.js)
   - `npm run lint`: 0 errors, 9 warnings left (unused debug helpers in the bots, `gridWidth` in `user-mode.js` used by commented-out code); decide whether to delete them
@@ -39,3 +39,4 @@ when it is done and add a one-line note (date, commit) under "Log".
 - 2026-10-24 18:13: ESLint 9 config (`eslint.config.js`, `npm run lint`); fixed implicit globals in both bots (`steps` was never used: its init loop never ran on the sparse array) and removed unused variables
 - 2026-10-24 18:14: `npm audit fix`: critical sha.js/crypto-browserify issues gone (lockfile only, bundle unchanged)
 - 2026-10-24 19:05: Mobile, part 2: on-screen arrow pad shown only on touch screens while playing (CSS `pointer: coarse`; Play-button handler no longer catches the arrow buttons), compact UI bar and 3-player leaderboard below 640px (`hud-layout.js`, unit-tested), start/score screens resized for phones; not checked visually
+- 2026-10-24 19:07: Code review (backlog was empty): empty extra rooms are now closed and rooms are looked up by id instead of array index (unit-tested). Found: server ticks at ~36/s instead of 60 on Windows (`setTimeout` resolution); fixing next
